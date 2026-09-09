@@ -125,6 +125,7 @@ body::before {
 .workspace {
   scrollbar-width: thin;
   scrollbar-color: #686b73 transparent;
+  scrollbar-gutter: stable;
 }
 
 .messages::-webkit-scrollbar,
