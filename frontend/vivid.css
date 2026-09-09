@@ -35,18 +35,24 @@ body {
 }
 .suggestions {
   position: absolute !important;
-  top: 285px !important;
-  left: 8% !important;
-  right: 8% !important;
+  top: 255px !important;
+  left: 9% !important;
+  right: auto !important;
+  width: 78% !important;
   background: transparent !important;
   padding: 0 !important;
   z-index: 3;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
 }
 .suggestions button {
-  background: rgba(43, 35, 59, 0.94) !important;
-  border: 1px solid rgba(216, 180, 254, 0.38) !important;
-  border-radius: 14px !important;
+  background: rgba(43, 35, 59, 0.82) !important;
+  border: 1px solid rgba(216, 180, 254, 0.2) !important;
+  border-radius: 12px !important;
   color: #f3e8ff !important;
+  padding: 8px 14px !important;
+  font-size: 13px !important;
 }
 @media (max-width: 700px) {
   .checklist {
@@ -55,7 +61,8 @@ body {
   .suggestions {
     left: 6% !important;
     right: 6% !important;
-    top: 290px !important;
+    width: auto !important;
+    top: 275px !important;
     flex-direction: column !important;
     align-items: flex-start !important;
   }
