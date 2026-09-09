@@ -1,2 +1,145 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RDN Bank · SAC Inteligente</title><link rel="stylesheet" href="style.css"><style>body{background:#0b1020}.shell{width:100%;max-width:1200px;margin:0 auto;display:block}.chat{width:100%;min-height:100vh}.chat header{padding:18px 5%;}.chat header small{display:none}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 260px;min-height:calc(100vh - 160px)}.messages{padding:34px 8%;min-width:0}.msg{max-width:680px;width:fit-content}.suggestions{padding:0 8% 16px}.chat form{padding:14px 8%}.checklist{border-left:1px solid #273250;padding:34px 22px;color:#8d9abc}.checklist b{color:#fff}.check{padding:0 0 24px}.check i{display:inline-block;width:10px;height:10px;border:1px solid #61749e;border-radius:50%;margin-right:9px}.check.active{color:#fff;font-weight:600}.check.active i{background:#4f46e5}@media(max-width:700px){.workspace{display:block;min-height:calc(100vh - 160px)}.checklist{display:none}.messages{padding:28px 6%}.suggestions,.chat form{padding-left:6%;padding-right:6%}.msg{max-width:92%}.chat header{padding:16px 6%}}
-</style></head><body><main class="shell"><section class="chat"><header><div><span class="status"></span><b>RDN Bank</b><small>SAC Inteligente</small></div><button id="reset">Novo atendimento</button></header><div class="workspace"><div id="messages" class="messages"></div><aside class="checklist"><b>Andamento</b><div class="check active"><i></i>Entendendo sua solicitação</div><div class="check"><i></i>Consultando dados</div><div class="check"><i></i>Aplicando regras</div><div class="check"><i></i>Preparando resposta</div></aside></div><div class="suggestions" id="suggestions"></div><form id="form"><input id="input" placeholder="Descreva o que aconteceu…" autocomplete="off"><button>Enviar</button></form></section></main><script src="chat.js"></script></body></html>
+<!doctype html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>RDN Bank · SAC Inteligente</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+            background: #0b1020
+        }
+
+        .shell {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+            display: block
+        }
+
+        .chat {
+            width: 100%;
+            min-height: 100vh
+        }
+
+        .chat header {
+            padding: 18px 5%;
+        }
+
+        .chat header small {
+            display: none
+        }
+
+        .workspace {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 260px;
+            min-height: calc(100vh - 160px)
+        }
+
+        .messages {
+            padding: 34px 8%;
+            min-width: 0
+        }
+
+        .msg {
+            max-width: 680px;
+            width: fit-content
+        }
+
+        .suggestions {
+            padding: 0 8% 16px
+        }
+
+        .chat form {
+            padding: 14px 8%
+        }
+
+        .checklist {
+            border-left: 1px solid #273250;
+            padding: 34px 22px;
+            color: #8d9abc
+        }
+
+        .checklist b {
+            color: #fff
+        }
+
+        .check {
+            padding: 0 0 24px
+        }
+
+        .check i {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border: 1px solid #61749e;
+            border-radius: 50%;
+            margin-right: 9px
+        }
+
+        .check.active {
+            color: #fff;
+            font-weight: 600
+        }
+
+        .check.active i {
+            background: #4f46e5
+        }
+
+        @media(max-width:700px) {
+            .workspace {
+                display: block;
+                min-height: calc(100vh - 160px)
+            }
+
+            .checklist {
+                display: none
+            }
+
+            .messages {
+                padding: 28px 6%
+            }
+
+            .suggestions,
+            .chat form {
+                padding-left: 6%;
+                padding-right: 6%
+            }
+
+            .msg {
+                max-width: 92%
+            }
+
+            .chat header {
+                padding: 16px 6%
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main class="shell">
+        <section class="chat">
+            <header>
+                <div><span class="status"></span><b>RDN Bank</b><small>SAC Inteligente</small></div><button
+                    id="reset">Novo atendimento</button>
+            </header>
+            <div class="workspace">
+                <div id="messages" class="messages"></div>
+                <aside class="checklist"><b>Andamento</b>
+                    <div class="check active"><i></i>Entendendo sua solicitação</div>
+                    <div class="check"><i></i>Consultando dados</div>
+                    <div class="check"><i></i>Aplicando regras</div>
+                    <div class="check"><i></i>Preparando resposta</div>
+                </aside>
+            </div>
+            <div class="suggestions" id="suggestions"></div>
+            <form id="form"><input id="input" placeholder="Descreva o que aconteceu…"
+                    autocomplete="off"><button>Enviar</button></form>
+        </section>
+    </main>
+    <script src="chat.js"></script>
+</body>
+
+</html>
