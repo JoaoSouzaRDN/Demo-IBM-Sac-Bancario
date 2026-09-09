@@ -115,6 +115,11 @@ body::before {
   overflow: hidden !important;
 }
 
+.shell {
+  width: min(1056px, calc(100vw - 32px)) !important;
+  max-width: 1056px !important;
+}
+
 /* Barra de rolagem discreta, integrada ao visual do chat. */
 .messages,
 .workspace {
