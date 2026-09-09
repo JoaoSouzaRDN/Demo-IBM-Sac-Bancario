@@ -9,10 +9,13 @@ body {
   min-height: 100%;
   overflow: hidden;
   background-image: url("glowing-stars.svg") !important;
+  background-color: #12051f !important;
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  background-blend-mode: multiply;
 }
+.chat{height:94vh!important;margin:3vh auto!important}.agent{background:#303238!important;border-color:#4a4d54!important}.suggestions button{background:#35373d!important;border-color:#4a4d54!important}.chat form{border-top:1px solid #4a4d54!important}
 .shell {
   display: block !important;
   width: 100% !important;
