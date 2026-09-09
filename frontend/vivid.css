@@ -113,6 +113,32 @@ body::before {
   overflow: hidden !important;
 }
 
+/* Barra de rolagem discreta, integrada ao visual do chat. */
+.messages {
+  scrollbar-width: thin;
+  scrollbar-color: #686b73 transparent;
+}
+
+.messages::-webkit-scrollbar {
+  width: 7px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: #686b73;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+  background: #858891;
+  background-clip: padding-box;
+}
+
 @media (max-width: 700px) {
   .checklist {
     display: none !important;
