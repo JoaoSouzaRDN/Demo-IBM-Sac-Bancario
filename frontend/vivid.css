@@ -1,9 +1,9 @@
 html,
 body {
-  background-color:#12051f!important;
-  background-image:radial-gradient(circle at 8% 18%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 22% 72%,#d8b4fe 0 1.5px,transparent 2.5px),radial-gradient(circle at 78% 16%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 92% 66%,#d8b4fe 0 1.5px,transparent 2.5px),radial-gradient(circle at 66% 84%,#fff 0 1px,transparent 2px),url("glowing-stars.svg")!important;
+  background-color:#0a0a23!important;
+  background-image:url("background-stars.svg")!important;
   background-position:center!important;
-  background-size:cover,cover,cover,cover,cover!important;
+  background-size:cover!important;
   min-height: 100%;
   overflow: hidden;
   background-size: cover;
@@ -66,6 +66,34 @@ body {
   box-shadow: 0 4px 10px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.3)!important;
 }
 .suggestions[style*="display: none"]{display:none!important}
+
+/* Fundo SVG fornecido, sobre uma base escura para manter contraste. */
+html,
+body {
+  background: linear-gradient(135deg, #080817 0%, #160526 48%, #3b0b58 100%) !important;
+}
+
+body {
+  position: relative;
+  isolation: isolate;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: url("background-stars.svg") center / cover no-repeat;
+  opacity: .72;
+  mix-blend-mode: screen;
+}
+
+.shell {
+  position: relative;
+  z-index: 1;
+}
+
 @media (max-width: 700px) {
   .checklist {
     display: none !important;
