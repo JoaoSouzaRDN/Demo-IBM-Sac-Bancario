@@ -104,6 +104,8 @@ body::before {
   box-shadow: none !important;
   overflow: visible !important;
   border-radius: 0 !important;
+  width: min(960px, calc(100vw - 32px)) !important;
+  min-width: 0 !important;
 }
 
 /* O shell mantém a estrutura do layout; a profundidade fica somente no chat. */
