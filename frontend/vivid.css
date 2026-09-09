@@ -13,17 +13,18 @@ body {
   width: 100% !important;
   max-width: 1200px !important;
   background: rgba(25, 17, 38, 0.72) !important;
-  border: 1px solid transparent !important;
+  border: 0 !important;
   border-radius: 24px !important;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(255,255,255,.06),0 16px 45px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.5)!important;
+  box-shadow: 0 18px 48px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.6)!important;
 }
 .workspace{display:grid!important;grid-template-columns:minmax(0,1fr) 260px!important;height:calc(100vh - 155px)!important;min-height:0!important}.checklist{display:block!important;background:rgba(12,18,38,.72)!important;border-left:1px solid rgba(216,180,254,.18)!important}.suggestions{background:transparent!important}
 .chat{width:100%!important}
 .shell{max-width:960px!important}.chat header{padding:15px 5%!important}.messages{padding:28px 7%!important}.msg{font-size:13px!important;padding:11px 14px!important}.suggestions button{font-size:12px!important;padding:7px 11px!important}.chat input{font-size:13px!important;padding:11px!important}.chat form button,.chat header button{font-size:13px!important;padding:10px 16px!important}.agent{background:#2a2c31!important;border-color:#484b52!important}.chat input{background:#25272c!important;border-color:#4a4d55!important;color:#f0f0f1!important}.chat header button{background:linear-gradient(to right,#da22ff 0%,#9733ee 51%,#da22ff 100%)!important;background-size:200% auto!important;color:#fff!important;border:0!important}.chat header button:hover{background-position:right center!important}
 .agent {
   background: #303238 !important;
-  border: 1px solid #4a4d54 !important;
+  border: 0 !important;
+  box-shadow: 0 5px 12px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.3)!important;
   border-radius: 18px !important;
 }
 .user {
@@ -49,12 +50,13 @@ body {
   gap: 8px !important;
 }
 .suggestions button {
-  background: rgba(43, 35, 59, 0.82) !important;
-  border: 1px solid rgba(216, 180, 254, 0.2) !important;
+  background: #303238 !important;
+  border: 0 !important;
   border-radius: 12px !important;
   color: #f3e8ff !important;
   padding: 8px 14px !important;
   font-size: 13px !important;
+  box-shadow: 0 4px 10px rgba(0,0,0,.22),inset 0 1px 0 rgba(255,255,255,.07),inset 0 -1px 0 rgba(0,0,0,.3)!important;
 }
 .suggestions[style*="display: none"]{display:none!important}
 @media (max-width: 700px) {
