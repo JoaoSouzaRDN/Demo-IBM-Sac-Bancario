@@ -22,8 +22,8 @@ body {
 .chat{width:100%!important}
 .shell{max-width:960px!important}.chat header{padding:15px 5%!important}.messages{padding:28px 7%!important}.msg{font-size:13px!important;padding:11px 14px!important}.suggestions button{font-size:12px!important;padding:7px 11px!important}.chat input{font-size:13px!important;padding:11px!important}.chat form button,.chat header button{font-size:13px!important;padding:10px 16px!important}.agent{background:#2a2c31!important;border-color:#484b52!important}.chat input{background:#25272c!important;border-color:#4a4d55!important;color:#f0f0f1!important}.chat header button{background:linear-gradient(to right,#da22ff 0%,#9733ee 51%,#da22ff 100%)!important;background-size:200% auto!important;color:#fff!important;border:0!important}.chat header button:hover{background-position:right center!important}
 .agent {
-  background: rgba(43, 35, 59, 0.86) !important;
-  border: 1px solid rgba(216, 180, 254, 0.25) !important;
+  background: #303238 !important;
+  border: 1px solid #4a4d54 !important;
   border-radius: 18px !important;
 }
 .user {
@@ -38,15 +38,13 @@ body {
 .chat form button:hover{background-position:right center!important;transform:translateY(-1px)}
 .chat header,.workspace,.chat form{background:#191b21!important}.checklist{background:#191b21!important}.chat header,.chat form{border-color:#383b43!important}.workspace{border-bottom:1px solid #383b43!important}
 .suggestions {
-  position: absolute !important;
-  top: 255px !important;
-  left: 9% !important;
-  right: auto !important;
-  width: 78% !important;
+  position: static !important;
+  width: 100% !important;
   background: transparent !important;
   padding: 0 !important;
   z-index: 3;
   display: flex !important;
+  margin-top: 16px !important;
   flex-wrap: wrap !important;
   gap: 8px !important;
 }
@@ -64,10 +62,7 @@ body {
     display: none !important;
   }
   .suggestions {
-    left: 6% !important;
-    right: 6% !important;
-    width: auto !important;
-    top: 275px !important;
+    width: 100% !important;
     flex-direction: column !important;
     align-items: flex-start !important;
   }

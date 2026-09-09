@@ -13,7 +13,9 @@ function add(t, w = "agent") {
   );
 }
 function start() {
-  $("#messages").innerHTML = "";
+  const messages = $("#messages");
+  const suggestions = $("#suggestions");
+  messages.innerHTML = "";
   $("#suggestions").style.display = "flex";
   add(
     "Olá! Sou o assistente do RDN Bank. Vou consultar os dados e orientar você com segurança. Como posso ajudar?",
@@ -21,6 +23,7 @@ function start() {
   $("#suggestions").innerHTML = options
     .map((x) => `<button>${x}</button>`)
     .join("");
+  if (suggestions.parentElement !== messages) messages.appendChild(suggestions);
   document.querySelectorAll(".suggestions button").forEach(
     (b, i) =>
       (b.onclick = () => {
