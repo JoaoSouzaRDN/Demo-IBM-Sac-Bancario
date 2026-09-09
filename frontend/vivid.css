@@ -54,6 +54,7 @@ body {
   padding: 8px 14px !important;
   font-size: 13px !important;
 }
+.suggestions[style*="display: none"]{display:none!important}
 @media (max-width: 700px) {
   .checklist {
     display: none !important;
