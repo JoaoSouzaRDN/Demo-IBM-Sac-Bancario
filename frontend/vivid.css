@@ -104,6 +104,11 @@ body::before {
   box-shadow: none !important;
 }
 
+/* O shell mantém a estrutura do layout; a profundidade fica somente no chat. */
+.chat {
+  box-shadow: 0 16px 36px rgba(0, 0, 0, .38) !important;
+}
+
 @media (max-width: 700px) {
   .checklist {
     display: none !important;
