@@ -8,6 +8,10 @@ body {
   ) !important;
   min-height: 100%;
   overflow: hidden;
+  background-image: url("glowing-stars.svg") !important;
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
 }
 .shell {
   display: block !important;
