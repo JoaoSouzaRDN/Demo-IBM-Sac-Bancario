@@ -114,29 +114,41 @@ body::before {
 }
 
 /* Barra de rolagem discreta, integrada ao visual do chat. */
-.messages {
+.messages,
+.workspace {
   scrollbar-width: thin;
   scrollbar-color: #686b73 transparent;
 }
 
-.messages::-webkit-scrollbar {
+.messages::-webkit-scrollbar,
+.workspace::-webkit-scrollbar {
   width: 7px;
 }
 
-.messages::-webkit-scrollbar-track {
+.messages::-webkit-scrollbar-track,
+.workspace::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.messages::-webkit-scrollbar-thumb {
+.messages::-webkit-scrollbar-thumb,
+.workspace::-webkit-scrollbar-thumb {
   background: #686b73;
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
 
-.messages::-webkit-scrollbar-thumb:hover {
+.messages::-webkit-scrollbar-thumb:hover,
+.workspace::-webkit-scrollbar-thumb:hover {
   background: #858891;
   background-clip: padding-box;
+}
+
+.messages::-webkit-scrollbar-button,
+.workspace::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 @media (max-width: 700px) {
