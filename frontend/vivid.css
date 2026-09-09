@@ -101,6 +101,7 @@ body::before {
 .shell {
   position: relative;
   z-index: 1;
+  box-shadow: none !important;
 }
 
 @media (max-width: 700px) {
