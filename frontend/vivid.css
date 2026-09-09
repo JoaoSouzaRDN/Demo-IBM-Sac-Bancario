@@ -1,19 +1,11 @@
 html,
 body {
-  background: linear-gradient(
-    135deg,
-    #08080d 0%,
-    #1c0b35 55%,
-    #6d28d9 140%
-  ) !important;
+  background: #12051f url("glowing-stars.svg") center / cover no-repeat fixed !important;
   min-height: 100%;
   overflow: hidden;
-  background-image: url("glowing-stars.svg") !important;
-  background-color: #12051f !important;
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
-  background-blend-mode: multiply;
 }
 .chat{height:94vh!important;margin:3vh auto!important}.agent{background:#303238!important;border-color:#4a4d54!important}.suggestions button{background:#35373d!important;border-color:#4a4d54!important}.chat form{border-top:1px solid #4a4d54!important}
 .shell {
