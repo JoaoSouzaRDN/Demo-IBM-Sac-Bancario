@@ -6,6 +6,9 @@ body {
   background-size: cover;
   background-position: center;
   background-attachment: fixed;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 .shell{height:88vh!important}.chat{height:100%!important;margin:0 auto!important}.agent{background:#303238!important;border-color:#4a4d54!important;color:#f1f1f2!important}.suggestions{background:transparent!important}.suggestions button{background:#35373d!important;border-color:#4a4d54!important;color:#f1f1f2!important}.chat form{background:#303238!important;border-top:1px solid #4a4d54!important;padding-top:12px!important;padding-bottom:12px!important}.chat footer{display:none!important}.workspace{height:calc(88vh - 130px)!important;background:#303238!important}
 .shell {
@@ -17,6 +20,7 @@ body {
   border-radius: 16px !important;
   overflow: hidden;
   box-shadow: 0 18px 48px rgba(0,0,0,.65),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.6)!important;
+  margin:0 auto!important;
 }
 .workspace{display:grid!important;grid-template-columns:minmax(0,1fr) 260px!important;height:calc(100vh - 155px)!important;min-height:0!important}.checklist{display:block!important;background:rgba(12,18,38,.72)!important;border-left:1px solid rgba(216,180,254,.18)!important}.suggestions{background:transparent!important}
 .chat{width:100%!important}
