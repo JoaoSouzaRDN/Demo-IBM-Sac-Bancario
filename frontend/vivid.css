@@ -14,9 +14,10 @@ body {
   width: 100% !important;
   max-width: 1200px !important;
   background: rgba(25, 17, 38, 0.72) !important;
-  border: 1px solid rgba(216, 180, 254, 0.3) !important;
+  border: 1px solid transparent !important;
   border-radius: 24px !important;
   overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255,255,255,.06),0 16px 45px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.08),inset 0 -1px 0 rgba(0,0,0,.5)!important;
 }
 .workspace{display:grid!important;grid-template-columns:minmax(0,1fr) 260px!important;height:calc(100vh - 155px)!important;min-height:0!important}.checklist{display:block!important;background:rgba(12,18,38,.72)!important;border-left:1px solid rgba(216,180,254,.18)!important}.suggestions{background:transparent!important}
 .chat{width:100%!important}
@@ -32,7 +33,10 @@ body {
 .chat form button {
   background: linear-gradient(to right, #da22ff 0%, #9733ee 51%, #da22ff 100%) !important;
   border-radius: 14px !important;
+  background-size:200% auto!important;transition:background-position .35s ease,transform .2s ease!important;
 }
+.chat form button:hover{background-position:right center!important;transform:translateY(-1px)}
+.chat header,.workspace,.chat form{background:#191b21!important}.checklist{background:#191b21!important}.chat header,.chat form{border-color:#383b43!important}.workspace{border-bottom:1px solid #383b43!important}
 .suggestions {
   position: absolute !important;
   top: 255px !important;
