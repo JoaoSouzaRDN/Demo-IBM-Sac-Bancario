@@ -7,7 +7,7 @@ body {
   background-position: center;
   background-attachment: fixed;
 }
-.chat{height:88vh!important;margin:6vh auto!important}.agent{background:#303238!important;border-color:#4a4d54!important;color:#f1f1f2!important}.suggestions{background:transparent!important}.suggestions button{background:#35373d!important;border-color:#4a4d54!important;color:#f1f1f2!important}.chat form{background:#303238!important;border-top:1px solid #4a4d54!important;padding-top:12px!important;padding-bottom:12px!important}.chat footer{display:none!important}.workspace{height:calc(88vh - 130px)!important;background:#303238!important}
+.shell{height:88vh!important}.chat{height:100%!important;margin:0 auto!important}.agent{background:#303238!important;border-color:#4a4d54!important;color:#f1f1f2!important}.suggestions{background:transparent!important}.suggestions button{background:#35373d!important;border-color:#4a4d54!important;color:#f1f1f2!important}.chat form{background:#303238!important;border-top:1px solid #4a4d54!important;padding-top:12px!important;padding-bottom:12px!important}.chat footer{display:none!important}.workspace{height:calc(88vh - 130px)!important;background:#303238!important}
 .shell {
   display: block !important;
   width: 100% !important;
