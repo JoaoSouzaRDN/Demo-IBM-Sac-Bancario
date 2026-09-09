@@ -102,11 +102,15 @@ body::before {
   position: relative;
   z-index: 1;
   box-shadow: none !important;
+  overflow: visible !important;
+  border-radius: 0 !important;
 }
 
 /* O shell mantém a estrutura do layout; a profundidade fica somente no chat. */
 .chat {
   box-shadow: 0 16px 36px rgba(0, 0, 0, .38) !important;
+  border-radius: 16px !important;
+  overflow: hidden !important;
 }
 
 @media (max-width: 700px) {
