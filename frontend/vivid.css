@@ -1,6 +1,9 @@
 html,
 body {
-  background: #12051f url("glowing-stars.svg") center / cover no-repeat fixed !important;
+  background-color:#12051f!important;
+  background-image:radial-gradient(circle at 8% 18%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 22% 72%,#d8b4fe 0 1.5px,transparent 2.5px),radial-gradient(circle at 78% 16%,#fff 0 1.5px,transparent 2.5px),radial-gradient(circle at 92% 66%,#d8b4fe 0 1.5px,transparent 2.5px),radial-gradient(circle at 66% 84%,#fff 0 1px,transparent 2px),url("glowing-stars.svg")!important;
+  background-position:center!important;
+  background-size:cover,cover,cover,cover,cover!important;
   min-height: 100%;
   overflow: hidden;
   background-size: cover;
