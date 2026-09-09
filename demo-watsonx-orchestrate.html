@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo Watsonx SAC Pix</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+  :root {
+    --paper: #f3f6fb;
+    --paper-raised: #ffffff;
+    --paper-sunken: #e9eef6;
+    --ink: #10151d;
+    --ink-soft: #4c5768;
+    --ink-faint: #7c879a;
+    --line: rgba(16, 21, 29, 0.12);
+    --line-soft: rgba(16, 21, 29, 0.07);
+    --accent: #0f62fe;
+    --accent-ink: #043ce;
+    --accent-soft: #e6effe;
+    --accent-2: #6929c4;
+    --accent-2-soft: #f1e9fb;
+    --success: #14805e;
+    --success-soft: #e3f5ee;
+    --warning: #92600b;
+    --warning-soft: #fdf1dc;
+    --critical: #b3261e;
+    --critical-soft: #fbeae9;
+    --shadow: 0 1px 2px rgba(16,21,29,0.04), 0 8px 24px -12px rgba(16,21,29,0.18);
+    --font-display: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SFMono-Regular', Consolas, monospace;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper: #0d1117;
+      --paper-raised: #161d27;
+      --paper-sunken: #0a0e13;
+      --ink: #eef2f7;
+      --ink-soft: #a7b2c2;
+      --ink-faint: #717d8f;
+      --line: rgba(238, 242, 247, 0.14);
+      --line-soft: rgba(238, 242, 247, 0.08);
+      --accent: #5b9dff;
+      --accent-ink: #8ebaff;
+      --accent-soft: rgba(15, 98, 254, 0.18);
+      --accent-2: #b291e8;
+      --accent-2-soft: rgba(105, 41, 196, 0.22);
+      --success: #3ed9a3;
+      --success-soft: rgba(20, 128, 94, 0.22);
+      --warning: #f2b043;
+      --warning-soft: rgba(146, 96, 11, 0.24);
+      --critical: #ff7a70;
+      --critical-soft: rgba(179, 38, 30, 0.22);
+      --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper: #0d1117;
+    --paper-raised: #161d27;
+    --paper-sunken: #0a0e13;
+    --ink: #eef2f7;
+    --ink-soft: #a7b2c2;
+    --ink-faint: #717d8f;
+    --line: rgba(238, 242, 247, 0.14);
+    --line-soft: rgba(238, 242, 247, 0.08);
+    --accent: #5b9dff;
+    --accent-ink: #8ebaff;
+    --accent-soft: rgba(15, 98, 254, 0.18);
+    --accent-2: #b291e8;
+    --accent-2-soft: rgba(105, 41, 196, 0.22);
+    --success: #3ed9a3;
+    --success-soft: rgba(20, 128, 94, 0.22);
+    --warning: #f2b043;
+    --warning-soft: rgba(146, 96, 11, 0.24);
+    --critical: #ff7a70;
+    --critical-soft: rgba(179, 38, 30, 0.22);
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px -12px rgba(0,0,0,0.5);
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+  h1, h2, h3, h4 { font-family: var(--font-display); text-wrap: balance; color: var(--ink); margin: 0; }
+  p { margin: 0 0 1em 0; max-width: 66ch; }
+  code, .mono { font-family: var(--font-mono); }
+
+  a { color: var(--accent-ink); }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 264px minmax(0, 1fr);
+    max-width: 1240px;
+    margin: 0 auto;
+    align-items: start;
+  }
+
+  .toc {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    padding: 32px 20px 32px 28px;
+    border-right: 1px solid var(--line);
+  }
+  .toc-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+  .toc ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; counter-reset: toc; }
+  .toc li { counter-increment: toc; }
+  .toc a {
+    display: flex;
+    gap: 10px;
+    align-items: baseline;
+    padding: 7px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--ink-soft);
+    font-size: 13.5px;
+    font-weight: 500;
+  }
+  .toc a:hover { background: var(--paper-sunken); color: var(--ink); }
+  .toc a::before {
+    content: counter(toc, decimal-leading-zero);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--ink-faint);
+    flex-shrink: 0;
+    padding-top: 1px;
+  }
+  .toc-meta {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+    font-size: 12px;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  main { padding: 56px 56px 120px 56px; min-width: 0; }
+
+  .cover {
+    margin-bottom: 56px;
+  }
+  .cover-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-ink);
+    background: var(--accent-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+    margin-bottom: 18px;
+  }
+  .cover h1 { font-size: 38px; font-weight: 700; letter-spacing: -0.01em; max-width: 20ch; }
+  .cover-sub { font-size: 17px; color: var(--ink-soft); max-width: 62ch; margin-top: 14px; }
+  .cover-facts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0,1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 32px;
+  }
+  .cover-fact { background: var(--paper-raised); padding: 16px 18px; }
+  .cover-fact .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink-faint); font-weight: 600; margin-bottom: 6px; }
+  .cover-fact .v { font-size: 14.5px; font-weight: 600; color: var(--ink); }
+
+  section { padding: 40px 0; border-top: 1px solid var(--line); scroll-margin-top: 24px; }
+  section:first-of-type { border-top: none; }
+  .section-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .section-num { font-family: var(--font-mono); font-size: 13px; color: var(--accent-ink); font-weight: 600; }
+  section h2 { font-size: 24px; font-weight: 700; }
+  .section-dek { color: var(--ink-soft); font-size: 15px; margin: 10px 0 28px 0; max-width: 68ch; }
+
+  .callout {
+    display: flex;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--paper-raised);
+    margin: 0 0 20px 0;
+    max-width: 78ch;
+  }
+  .callout .tag {
+    flex-shrink: 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    height: fit-content;
+  }
+  .callout p, .callout ul { margin: 0; font-size: 14px; color: var(--ink-soft); }
+  .callout ul { padding-left: 18px; }
+  .callout.assumption { border-color: var(--accent-soft); }
+  .callout.assumption .tag { background: var(--accent-soft); color: var(--accent-ink); }
+  .callout.attention { border-color: var(--warning-soft); }
+  .callout.attention .tag { background: var(--warning-soft); color: var(--warning); }
+  .callout.tip { border-color: var(--success-soft); }
+  .callout.tip .tag { background: var(--success-soft); color: var(--success); }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+
+  .card {
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+  .card h3 .mono { font-size: 12px; color: var(--ink-faint); font-weight: 500; display: block; margin-top: 2px; }
+  .card p { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; margin: 8px 0 20px 0; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+  thead th { background: var(--paper-sunken); font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); font-weight: 600; border-bottom: 1px solid var(--line); }
+  tbody tr:last-child td { border-bottom: none; }
+  td.mono, th.mono { font-family: var(--font-mono); font-size: 12.5px; color: var(--ink-soft); white-space: nowrap; }
+
+  .pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 999px; }
+  .pill.blue { background: var(--accent-soft); color: var(--accent-ink); }
+  .pill.purple { background: var(--accent-2-soft); color: var(--accent-2); }
+  .pill.green { background: var(--success-soft); color: var(--success); }
+  .pill.amber { background: var(--warning-soft); color: var(--warning); }
+  .pill.red { background: var(--critical-soft); color: var(--critical); }
+  .pill.gray { background: var(--paper-sunken); color: var(--ink-faint); }
+
+  /* Mermaid diagrams */
+  .diagram-frame { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin: 8px 0 24px 0; overflow-x: auto; }
+  .diagram-caption { font-size: 12.5px; color: var(--ink-faint); margin-top: 10px; }
+
+  /* Chat mockup */
+  .mock-shell {
+    display: grid;
+    grid-template-columns: minmax(0,1fr) 260px;
+    gap: 0;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    overflow: hidden;
+    background: var(--paper-raised);
+    box-shadow: var(--shadow);
+    margin: 8px 0 20px 0;
+  }
+  .mock-chat { padding: 20px; display: flex; flex-direction: column; gap: 12px; background: var(--paper-sunken); min-height: 420px; }
+  .mock-bank-header { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .mock-bank-header .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--success); }
+  .mock-bank-header span { font-size: 12.5px; font-weight: 600; color: var(--ink-soft); }
+  .bubble { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 13.5px; line-height: 1.5; }
+  .bubble.agent { align-self: flex-start; background: var(--paper-raised); border: 1px solid var(--line); border-bottom-left-radius: 4px; }
+  .bubble.user { align-self: flex-end; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; align-self: flex-start; max-width: 92%; }
+  .chip { font-size: 12.5px; font-weight: 500; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--accent); color: var(--accent-ink); background: var(--accent-soft); }
+  .chip.ghost { border-style: dashed; opacity: 0.7; }
+
+  .mock-side { padding: 18px 16px; border-left: 1px solid var(--line); display: flex; flex-direction: column; }
+  .mock-side-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink-faint); font-weight: 700; margin-bottom: 14px; }
+  .steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+  .step { display: flex; gap: 10px; position: relative; padding-bottom: 20px; }
+  .step:last-child { padding-bottom: 0; }
+  .step::before {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: 16px;
+    bottom: 0;
+    width: 1.5px;
+    background: var(--line);
+  }
+  .step:last-child::before { display: none; }
+  .step-dot { flex-shrink: 0; width: 11px; height: 11px; border-radius: 50%; margin-top: 3px; z-index: 1; }
+  .step-dot.done { background: var(--success); }
+  .step-dot.active { background: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+  .step-dot.pending { background: var(--paper-raised); border: 1.5px solid var(--ink-faint); }
+  .step-label { font-size: 12.5px; color: var(--ink-soft); }
+  .step.done .step-label { color: var(--ink); }
+  .step.active .step-label { color: var(--ink); font-weight: 600; }
+  .step-time { display: block; font-family: var(--font-mono); font-size: 10.5px; color: var(--ink-faint); margin-top: 2px; }
+
+  /* Control plane mockup */
+  .cp-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 8px 0 24px 0; }
+  .cp-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .cp-card-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .cp-card-head h4 { font-size: 13px; font-weight: 600; }
+  .cp-metric { font-family: var(--font-mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .cp-sub { font-size: 12px; color: var(--ink-faint); }
+  .cp-row { display: flex; justify-content: space-between; gap: 8px; font-size: 12.5px; padding: 6px 0; border-top: 1px solid var(--line-soft); }
+  .cp-row:first-of-type { border-top: none; }
+  .cp-row .k { color: var(--ink-soft); }
+  .cp-row .v { font-family: var(--font-mono); font-size: 12px; color: var(--ink); text-align: right; }
+
+  .timeline { display: flex; flex-direction: column; margin: 8px 0 24px 0; }
+  .tl-row { display: grid; grid-template-columns: 96px 1fr; gap: 18px; padding: 14px 0; border-top: 1px solid var(--line-soft); }
+  .tl-row:first-child { border-top: none; }
+  .tl-time { font-family: var(--font-mono); font-size: 12.5px; color: var(--accent-ink); font-weight: 600; padding-top: 1px; }
+  .tl-content h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .tl-content p { font-size: 13.5px; color: var(--ink-soft); margin-bottom: 0; }
+  .tl-content .say { display: block; margin-top: 6px; font-size: 13px; color: var(--ink-faint); font-style: italic; }
+
+  ul.plain { margin: 0 0 1em 0; padding-left: 20px; font-size: 15px; }
+  ul.plain li { margin-bottom: 6px; }
+  ul.tight { margin: 0; padding-left: 18px; font-size: 13.5px; }
+  ul.tight li { margin-bottom: 4px; }
+
+  .foot { padding: 40px 0 0 0; border-top: 1px solid var(--line); margin-top: 20px; }
+  .foot p { font-size: 12.5px; color: var(--ink-faint); }
+  .foot ul { padding-left: 18px; font-size: 12.5px; color: var(--ink-faint); }
+
+  @media (max-width: 980px) {
+    .layout { grid-template-columns: 1fr; }
+    .toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    main { padding: 32px 24px 80px 24px; }
+    .grid-2, .grid-3, .cp-grid { grid-template-columns: 1fr; }
+    .mock-shell { grid-template-columns: 1fr; }
+    .mock-side { border-left: none; border-top: 1px solid var(--line); }
+    .cover-facts { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <nav class="toc">
+    <div class="toc-eyebrow">Neste documento</div>
+    <ol>
+      <li><a href="#objetivo">Objetivo e narrativa</a></li>
+      <li><a href="#cenario">Cenário e personas</a></li>
+      <li><a href="#arquitetura">Arquitetura no Orchestrate</a></li>
+      <li><a href="#fluxo">Fluxo do agente (caso Pix)</a></li>
+      <li><a href="#interface">Interface de chat</a></li>
+      <li><a href="#roteiro">Roteiro da apresentação</a></li>
+      <li><a href="#control-plane">Control Plane populado</a></li>
+      <li><a href="#checklist">Checklist técnico</a></li>
+      <li><a href="#riscos">Riscos e plano B</a></li>
+    </ol>
+    <div class="toc-meta">
+      <span>Documento de referência interna</span>
+      <span>Atualizado em 04/09/2026</span>
+    </div>
+  </nav>
+
+  <main>
+    <header class="cover">
+      <span class="cover-kicker">Detalhamento de demo · uso interno</span>
+      <h1>Agente de SAC bancário no watsonx Orchestrate</h1>
+      <p class="cover-sub">Roteiro completo do caso "Pix não recebido": como o agente resolve o atendimento combinando regra determinística e raciocínio interpretativo, e o que mostrar no Agentic Control Plane logo depois, com a própria execução já registrada nele.</p>
+      <div class="cover-facts">
+        <div class="cover-fact"><div class="k">Produto principal</div><div class="v">IBM watsonx Orchestrate</div></div>
+        <div class="cover-fact"><div class="k">Destaque</div><div class="v">Governança &amp; Control Plane</div></div>
+        <div class="cover-fact"><div class="k">Cenário</div><div class="v">SAC bancário · Pix</div></div>
+        <div class="cover-fact"><div class="k">Duração sugerida</div><div class="v">~9 minutos</div></div>
+      </div>
+    </header>
+
+    <section id="objetivo">
+      <div class="section-head"><span class="section-num">01</span><h2>Objetivo e narrativa</h2></div>
+      <p class="section-dek">Por que esta demo existe e qual é a virada de mesa que ela precisa entregar.</p>
+
+      <div class="callout assumption">
+        <span class="tag">Premissa</span>
+        <div>
+          <p>O pedido original não especifica evento, plateia nem duração. Este documento assume uma demo comercial curta (formato roadshow ou estande de evento, plateia técnica e de negócio do setor financeiro, cerca de 9 minutos de palco). Ajuste os números de tempo do roteiro se o contexto real for outro; a estrutura em dois atos se mantém.</p>
+        </div>
+      </div>
+
+      <p>A demo é construída em dois atos deliberadamente separados. No primeiro, a plateia vê o que o cliente final do banco vê: um chat de atendimento que resolve, sozinho, um problema real e sensível (dinheiro que saiu da conta e não chegou ao destino). No segundo ato, sem trocar de história, a câmera vira para dentro: a mesma execução que acabou de acontecer já está registrada, auditável e sob política no Agentic Control Plane.</p>
+
+      <p>A mensagem central não é "o bot conversa bem". É: <strong>o agente decide com um processo que mistura regra fixa (compliance, elegibilidade, valores e prazos) e interpretação (entender o relato livre do cliente e os dados dos sistemas)</strong>, e esse processo inteiro fica visível e controlável por quem responde pela operação, não apenas por quem construiu o agente.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>O que a demo precisa provar</h3>
+          <p>Que dá para colocar um agente de IA em um fluxo financeiro sensível sem abrir mão de regra de negócio auditável nem de controle de acesso a sistemas.</p>
+        </div>
+        <div class="card">
+          <h3>O que a demo não deve virar</h3>
+          <p>Uma demonstração genérica de chatbot. O Pix é o veículo; o Control Plane populado com o rastro daquela conversa é o destino.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="cenario">
+      <div class="section-head"><span class="section-num">02</span><h2>Cenário e personas</h2></div>
+      <p class="section-dek">O caso de uso é único e conhecido de quem trabalha com Pix: reclamação de "dinheiro que saiu e não chegou" é hoje um dos maiores volumes de contato em SAC bancário no Brasil, e mistura verificação técnica com um prazo regulatório real (o MED, o mecanismo do Banco Central para devolução de valores em fraude ou erro).</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Papel</th><th>Quem é</th><th>O que faz na demo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Cliente do banco</strong></td><td>Correntista fictício, já autenticado no app/site</td><td>Abre o chat, relata em linguagem livre que fez um Pix e o dinheiro não chegou</td></tr>
+            <tr><td><strong>Agente SAC</strong></td><td>Agente publicado no Orchestrate, canal de chat do banco</td><td>Interpreta o relato, consulta sistemas, aplica a regra e resolve ou escala</td></tr>
+            <tr><td><strong>Core bancário</strong> <span class="mono">(mock)</span></td><td>Sistema de conta e extrato</td><td>Confirma o débito, saldo e histórico da transação</td></tr>
+            <tr><td><strong>Motor Pix / SPI</strong> <span class="mono">(mock)</span></td><td>Sistema de liquidação do Pix</td><td>Retorna status da transação: em processamento, devolvida, creditada em conta divergente</td></tr>
+            <tr><td><strong>CRM / chamados</strong> <span class="mono">(mock)</span></td><td>Sistema de ticketing do SAC</td><td>Abre e consulta protocolo quando o caso precisa de MED ou análise humana</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout attention">
+        <span class="tag">Atenção</span>
+        <p>Todos os sistemas de backend são simulados (mock). Não conectar a nenhum sistema bancário real, mesmo de homologação, para uma demo de evento; ver o checklist técnico na seção 8 para a forma recomendada de mockar cada integração no Orchestrate.</p>
+      </div>
+    </section>
+
+    <section id="arquitetura">
+      <div class="section-head"><span class="section-num">03</span><h2>Arquitetura no watsonx Orchestrate</h2></div>
+      <p class="section-dek">Um agente orquestrador, duas formas de decidir e três integrações mockadas, todas com telemetria alimentando o Control Plane.</p>
+
+      <div class="diagram-frame">
+        <pre class="mermaid">
+flowchart LR
+  cliente["Cliente do banco"] --> canal["Canal de chat<br/>Web Chat do Orchestrate"]
+  canal --> agente[["Agente SAC Bancário<br/>Agent Builder"]]
+  agente --> nlu("Tool interpretativa<br/>LLM: entende o relato livre<br/>e extrai dados do Pix")
+  agente --> regra{{"Tool determinística<br/>tabela de decisão:<br/>elegibilidade de estorno"}}
+  agente --> tools[("Tools de integração")]
+  tools --> core[("Core bancário (mock)")]
+  tools --> pix[("Motor Pix / SPI (mock)")]
+  tools --> crm[("CRM / chamados (mock)")]
+  agente -.telemetria de cada execução.-> cp[["Agentic Control Plane"]]
+        </pre>
+        <p class="diagram-caption">Um único agente publicado orquestra a tool interpretativa, a tabela de decisão determinística e as tools de integração; toda chamada de ferramenta e toda decisão é enviada como telemetria para o Control Plane, que é o que populamos no segundo ato.</p>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <h3>Tool interpretativa<span class="mono">LLM · NLU</span></h3>
+          <p>Lê o relato livre ("fiz um pix e não chegou"), classifica a intenção e extrai entidades: valor, data/hora aproximada, chave Pix do destinatário.</p>
+        </div>
+        <div class="card">
+          <h3>Tool determinística<span class="mono">Decision table</span></h3>
+          <p>Aplica a política do banco: prazo desde a transação, valor-teto para estorno automático, sinal de fraude. Decide entre estorno automático ou abertura de chamado MED.</p>
+        </div>
+        <div class="card">
+          <h3>Tools de integração<span class="mono">OpenAPI / Python</span></h3>
+          <p>Três tools mockadas (core bancário, motor Pix, CRM) com respostas fixas e variações controladas para os dois caminhos da demo.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="fluxo">
+      <div class="section-head"><span class="section-num">04</span><h2>Fluxo do agente: caso Pix</h2></div>
+      <p class="section-dek">Os oito passos que o agente executa, na ordem em que aparecem como bolinhas de progresso no painel lateral do chat.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th class="mono">Passo</th><th>Etapa</th><th>Como decide</th><th>Sistema envolvido</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">1</td><td>Identificação do cliente</td><td>Determinístico (sessão já autenticada)</td><td>Core bancário</td></tr>
+            <tr><td class="mono">2</td><td>Entendimento do problema</td><td>Interpretativo: classifica como "Pix não recebido" e extrai entidades</td><td>Tool interpretativa (LLM)</td></tr>
+            <tr><td class="mono">3</td><td>Confirmação dos dados da transação</td><td>Interpretativo, com validação determinística dos campos obrigatórios</td><td>Tool interpretativa</td></tr>
+            <tr><td class="mono">4</td><td>Consulta ao core bancário</td><td>Determinístico</td><td>Core bancário (mock)</td></tr>
+            <tr><td class="mono">5</td><td>Consulta ao motor Pix/SPI</td><td>Determinístico</td><td>Motor Pix (mock)</td></tr>
+            <tr><td class="mono">6</td><td>Aplicação da regra de elegibilidade</td><td>Determinístico: tabela de decisão (prazo, valor, sinal de fraude)</td><td>Decision table</td></tr>
+            <tr><td class="mono">7</td><td>Resolução: estorno automático <em>ou</em> abertura de chamado</td><td>Determinístico, ramificado pelo passo 6</td><td>Motor Pix / CRM (mock)</td></tr>
+            <tr><td class="mono">8</td><td>Encerramento e sugestão de próxima ação</td><td>Determinístico (mensagem padrão) + sugestão contextual</td><td>Canal de chat</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="diagram-frame">
+        <pre class="mermaid">
+flowchart TD
+  A["Cliente relata: Pix não chegou"] --> B["Tool interpretativa<br/>extrai valor, data, chave Pix"]
+  B --> C["Consulta core bancário<br/>confirma débito"]
+  C --> D["Consulta motor Pix/SPI<br/>status da transação"]
+  D --> E{"Tabela de decisão:<br/>elegível a estorno automático?"}
+  E -->|"Sim: dentro do prazo,<br/>valor sob o teto, sem sinal de fraude"| F["Estorno automático<br/>via motor Pix"]
+  E -->|"Não: fora do prazo,<br/>valor alto ou suspeita de fraude"| G["Abertura de chamado MED<br/>via CRM, com protocolo"]
+  F --> H["Confirma ao cliente<br/>+ sugestão: consultar status"]
+  G --> H
+        </pre>
+        <p class="diagram-caption">A demo deve preparar os dois caminhos (F e G) com dados de teste diferentes, para poder escolher no palco qual desfecho contar, ou até mostrar os dois em sequência se o tempo permitir.</p>
+      </div>
+
+      <div class="callout tip">
+        <span class="tag">Dica</span>
+        <p>Vale a pena rodar o caminho G (chamado MED) como desfecho principal da demo: ele é mais rico para o segundo ato, porque gera um protocolo que pode ser consultado depois pelo próprio cliente, o que já é a sugestão seguinte do passo 8.</p>
+      </div>
+    </section>
+
+    <section id="interface">
+      <div class="section-head"><span class="section-num">05</span><h2>Interface de chat</h2></div>
+      <p class="section-dek">Layout de duas colunas: a conversa e, fixo ao lado, o histórico do atendimento com bolinhas de progresso. Mockup do estado do meio do fluxo (passo 5 em andamento).</p>
+
+      <div class="mock-shell">
+        <div class="mock-chat">
+          <div class="mock-bank-header"><span class="dot"></span><span>Atendimento · Banco (ambiente de demonstração)</span></div>
+          <div class="bubble agent">Olá! Sou o assistente de atendimento do banco. Como posso ajudar hoje?</div>
+          <div class="chips">
+            <span class="chip">Fiz um Pix e não chegou</span>
+            <span class="chip ghost">Consultar fatura</span>
+            <span class="chip ghost">Ver extrato</span>
+            <span class="chip ghost">Falar com atendente</span>
+          </div>
+          <div class="bubble user">Fiz um Pix de R$ 850 ontem à noite e não chegou na conta do meu irmão</div>
+          <div class="bubble agent">Entendi. Localizei uma transação de R$ 850,00 em 03/09 às 21:42 para a chave informada. Só um instante, estou consultando o status dessa transação no sistema do Pix.</div>
+        </div>
+        <aside class="mock-side">
+          <div class="mock-side-title">Histórico do atendimento</div>
+          <ol class="steps">
+            <li class="step done"><span class="step-dot done"></span><div><span class="step-label">Cliente identificado</span><span class="step-time">21:58:02</span></div></li>
+            <li class="step done"><span class="step-dot done"></span><div><span class="step-label">Problema entendido: Pix não recebido</span><span class="step-time">21:58:07</span></div></li>
+            <li class="step done"><span class="step-dot done"></span><div><span class="step-label">Dados da transação confirmados</span><span class="step-time">21:58:09</span></div></li>
+            <li class="step done"><span class="step-dot done"></span><div><span class="step-label">Débito confirmado no core bancário</span><span class="step-time">21:58:11</span></div></li>
+            <li class="step active"><span class="step-dot active"></span><div><span class="step-label">Consultando o motor Pix / SPI</span><span class="step-time">em andamento</span></div></li>
+            <li class="step pending"><span class="step-dot pending"></span><div><span class="step-label">Regra de elegibilidade</span></div></li>
+            <li class="step pending"><span class="step-dot pending"></span><div><span class="step-label">Resolução</span></div></li>
+            <li class="step pending"><span class="step-dot pending"></span><div><span class="step-label">Encerramento</span></div></li>
+          </ol>
+        </aside>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Estados da bolinha</h3>
+          <p><span class="pill green">Concluída</span> preenchida, sólida. <span class="pill blue">Em andamento</span> com halo pulsante enquanto a tool correspondente está em execução. <span class="pill gray">Pendente</span> apenas contorno, sem preenchimento.</p>
+        </div>
+        <div class="card">
+          <h3>Mensagens de sugestão</h3>
+          <p>Chips exibidos como estado inicial do chat (antes de qualquer mensagem) e recalculados após cada resposta do agente. Uma sugestão sobre Pix é obrigatória no conjunto inicial; depois da abertura do chamado, a sugestão "Consultar status do meu chamado" passa a aparecer no lugar dela.</p>
+        </div>
+      </div>
+
+      <div class="callout attention">
+        <span class="tag">Atenção para quem for construir</span>
+        <div>
+          <p>O Web Chat nativo do Orchestrate não traz, por padrão, um painel lateral de histórico com bolinhas de progresso; isso é uma customização de front-end sobre o SDK/ADK de chat do Orchestrate (ou uma UI própria consumindo a API de conversa do agente). Ao planejar a construção, considerar:</p>
+          <ul>
+            <li>Usar a customização de UI do ADK do watsonx Orchestrate como base, adicionando o painel lateral como componente próprio;</li>
+            <li>Mapear cada chamada de tool do agente para um evento de atualização de passo no painel (a granularidade dos 8 passos da seção 4);</li>
+            <li>Definir com antecedência os textos exatos de cada rótulo de passo, para não improvisar no dia.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="roteiro">
+      <div class="section-head"><span class="section-num">06</span><h2>Roteiro da apresentação</h2></div>
+      <p class="section-dek">Sugestão de condução, com o texto de apoio para quem estiver narrando. Ajustar os tempos ao horário real do evento.</p>
+
+      <div class="timeline">
+        <div class="tl-row">
+          <div class="tl-time">00:00</div>
+          <div class="tl-content">
+            <h4>Contexto do problema</h4>
+            <p>Situar o Pix como um dos maiores volumes de contato em SAC bancário e o custo de tratar isso manualmente.</p>
+            <span class="say">"Toda instituição que opera Pix conhece este chamado: o dinheiro saiu, o cliente está com o extrato aberto, e alguém precisa decidir rápido o que fazer."</span>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">00:45</div>
+          <div class="tl-content">
+            <h4>Abrir o chat, mostrar as sugestões</h4>
+            <p>Tela inicial do agente, com os chips de sugestão visíveis, incluindo o de Pix.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">01:15</div>
+          <div class="tl-content">
+            <h4>Disparar o caso</h4>
+            <p>Clicar na sugestão de Pix (ou digitar o relato) e deixar o agente conduzir.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">01:45 - 04:00</div>
+          <div class="tl-content">
+            <h4>Fluxo em andamento</h4>
+            <p>Narrar por cima das bolinhas avançando: nomear explicitamente quando o agente está interpretando (LLM) e quando está aplicando regra fixa (tabela de decisão), para que a plateia perceba os dois modos de decisão.</p>
+            <span class="say">"Aqui ele não está 'adivinhando' se pode estornar: está checando prazo, valor e sinal de fraude contra uma regra publicada pelo banco."</span>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">04:00</div>
+          <div class="tl-content">
+            <h4>Desfecho e nova sugestão</h4>
+            <p>Chamado aberto com protocolo (ou estorno confirmado); a sugestão "Consultar status do meu chamado" aparece.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">04:30</div>
+          <div class="tl-content">
+            <h4>Clicar na sugestão de status</h4>
+            <p>Mostrar que o mesmo agente responde a um follow-up usando o protocolo já aberto, sem o cliente repetir informação.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">05:00</div>
+          <div class="tl-content">
+            <h4>Virada para o Control Plane</h4>
+            <p>Trocar de tela: a conversa que acabou de acontecer já está na trilha de auditoria.</p>
+            <span class="say">"Agora vamos para o outro lado da mesa: o que o time de risco e operações vê sobre esse mesmo atendimento."</span>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">05:15 - 08:00</div>
+          <div class="tl-content">
+            <h4>Percorrer o Control Plane</h4>
+            <p>Seguir a ordem da seção 7: trilha auditável da execução específica, política aplicada, acesso e credenciais, catálogo/versão do agente, e por fim uma pergunta em linguagem natural ao agente de operações.</p>
+          </div>
+        </div>
+        <div class="tl-row">
+          <div class="tl-time">08:30</div>
+          <div class="tl-content">
+            <h4>Fechamento</h4>
+            <p>Reforçar a mensagem central: mesmo agente, mesmo evento, duas visões: a do cliente e a de quem responde pela governança.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="control-plane">
+      <div class="section-head"><span class="section-num">07</span><h2>Control Plane populado</h2></div>
+      <p class="section-dek">O segundo ato. O objetivo é apontar para a execução que a plateia acabou de ver acontecer, não passear por telas vazias ou genéricas.</p>
+
+      <div class="cp-grid">
+        <div class="cp-card">
+          <div class="cp-card-head"><h4>Trilha auditável</h4><span class="pill blue">Observabilidade</span></div>
+          <div class="cp-metric">8/8</div>
+          <div class="cp-sub">Passos da execução registrados, com timestamps</div>
+          <div class="cp-row"><span class="k">Execução</span><span class="v">exec_pix_04set_2158</span></div>
+          <div class="cp-row"><span class="k">Tools chamadas</span><span class="v">5</span></div>
+          <div class="cp-row"><span class="k">Decisão aplicada</span><span class="v">elegibilidade_estorno v3</span></div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-head"><h4>Política em runtime</h4><span class="pill purple">Governança</span></div>
+          <div class="cp-metric">Aplicada</div>
+          <div class="cp-sub">Tabela de decisão de elegibilidade de estorno</div>
+          <div class="cp-row"><span class="k">Regra</span><span class="v">prazo &lt; 72h</span></div>
+          <div class="cp-row"><span class="k">Regra</span><span class="v">valor &le; teto</span></div>
+          <div class="cp-row"><span class="k">Resultado</span><span class="v">encaminhado a MED</span></div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-head"><h4>Acesso e credenciais</h4><span class="pill green">Saudável</span></div>
+          <div class="cp-metric">3/3</div>
+          <div class="cp-sub">Integrações do agente com credencial ativa</div>
+          <div class="cp-row"><span class="k">Core bancário</span><span class="v">ok</span></div>
+          <div class="cp-row"><span class="k">Motor Pix / SPI</span><span class="v">ok</span></div>
+          <div class="cp-row"><span class="k">CRM / chamados</span><span class="v">ok</span></div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-head"><h4>Guardrails de conteúdo</h4><span class="pill green">Sem violação</span></div>
+          <div class="cp-metric">0</div>
+          <div class="cp-sub">Respostas bloqueadas nesta execução</div>
+          <div class="cp-row"><span class="k">Dado sensível exposto</span><span class="v">não</span></div>
+          <div class="cp-row"><span class="k">Promessa fora de escopo</span><span class="v">não</span></div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-head"><h4>Catálogo e versão</h4><span class="pill blue">v2.4.0</span></div>
+          <div class="cp-metric">v2.4.0</div>
+          <div class="cp-sub">Versão publicada do agente SAC Bancário</div>
+          <div class="cp-row"><span class="k">Dono de negócio</span><span class="v">SAC / Operações</span></div>
+          <div class="cp-row"><span class="k">Dono técnico</span><span class="v">Squad de agentes</span></div>
+        </div>
+        <div class="cp-card">
+          <div class="cp-card-head"><h4>Análise de agentes</h4><span class="pill purple">Tendência</span></div>
+          <div class="cp-metric">+1</div>
+          <div class="cp-sub">Caso de Pix tratado na última hora (a própria demo)</div>
+          <div class="cp-row"><span class="k">Taxa de resolução automática</span><span class="v">visível no gráfico</span></div>
+          <div class="cp-row"><span class="k">Tempo médio de atendimento</span><span class="v">visível no gráfico</span></div>
+        </div>
+      </div>
+
+      <p>Fechar esse bloco perguntando algo em linguagem natural ao agente de operações do próprio Control Plane, por exemplo "quantos casos de Pix o agente tratou hoje e quantos foram resolvidos automaticamente", para mostrar que a investigação não depende de conhecimento técnico de quem está consultando.</p>
+
+      <div class="callout tip">
+        <span class="tag">Dica</span>
+        <p>Nenhum desses cartões deve nascer vazio no dia do evento. Rodar o fluxo de ponta a ponta várias vezes nos dias anteriores ("aquecimento") para que o gráfico de análise de agentes já mostre uma tendência, e a execução da demo ao vivo apareça como o ponto mais recente, não como o único ponto.</p>
+      </div>
+    </section>
+
+    <section id="checklist">
+      <div class="section-head"><span class="section-num">08</span><h2>Checklist técnico</h2></div>
+      <p class="section-dek">O que precisa estar pronto e testado antes do dia do evento.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Item</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            <tr><td>Ambiente</td><td>Instância do watsonx Orchestrate com o Agentic Control Plane habilitado (recurso de junho/2026, disponível em AWS e IBM Cloud)</td></tr>
+            <tr><td>Agente</td><td>Agente SAC Bancário publicado no Agent Builder, com versionamento semântico definido (ex.: v2.4.0)</td></tr>
+            <tr><td>Tool interpretativa</td><td>Prompt e exemplos de extração de entidades testados com variações reais de relato do cliente ("não chegou", "sumiu", "caiu na conta errada")</td></tr>
+            <tr><td>Tool determinística</td><td>Tabela de decisão de elegibilidade de estorno carregada, com os dois caminhos (automático e chamado MED) validados</td></tr>
+            <tr><td>Tools de integração</td><td>Três tools mock (core bancário, motor Pix/SPI, CRM) via OpenAPI ou Python, com dados de teste fixos para os dois desfechos</td></tr>
+            <tr><td>Base de conhecimento</td><td>Política de MED do Banco Central e FAQ de Pix carregadas, para perguntas de acompanhamento fora do fluxo principal</td></tr>
+            <tr><td>Guardrails</td><td>Guardrails de conteúdo configurados e testados contra respostas fora de escopo ou exposição de dado sensível</td></tr>
+            <tr><td>Interface</td><td>Painel lateral de histórico com bolinhas de progresso, construído sobre o SDK/ADK de chat do Orchestrate</td></tr>
+            <tr><td>Aquecimento</td><td>Execuções repetidas do fluxo nos dias anteriores para o painel de análise de agentes não aparecer vazio</td></tr>
+            <tr><td>Rede</td><td>Conectividade do local do evento testada com a instância real, não apenas em ambiente de escritório</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="riscos">
+      <div class="section-head"><span class="section-num">09</span><h2>Riscos e plano B</h2></div>
+      <p class="section-dek">O que pode dar errado ao vivo e como não deixar a demo travada.</p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h3>Falha de conectividade no evento</h3>
+          <p>Ter uma gravação em vídeo do fluxo completo (chat e Control Plane) como fallback, e decidir de antemão o gatilho para trocar para o vídeo sem alongar o silêncio no palco.</p>
+        </div>
+        <div class="card">
+          <h3>Resposta inesperada da tool interpretativa</h3>
+          <p>Usar sempre a mesma frase de abertura testada (ou o clique no chip de sugestão, que não depende de texto livre) em vez de digitar algo improvisado durante a apresentação.</p>
+        </div>
+        <div class="card">
+          <h3>Painel de análise vazio</h3>
+          <p>Resolvido pelo aquecimento prévio da seção 8; conferir no dia, algumas horas antes, que os gráficos já mostram histórico.</p>
+        </div>
+        <div class="card">
+          <h3>Pergunta da plateia sobre dados reais</h3>
+          <p>Deixar explícito, já na abertura da demo, que o ambiente é fictício e os sistemas de core bancário, Pix e CRM são simulados para fins de demonstração.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="foot">
+      <p><strong>Fontes usadas para a parte de governança e Control Plane</strong> (recurso lançado em 2026; conferir a documentação oficial antes da construção, pois a UI pode evoluir):</p>
+      <ul>
+        <li><a href="https://www.ibm.com/new/announcements/introducing-the-agentic-control-plane" target="_blank" rel="noopener">IBM: Introducing the Agentic Control Plane</a></li>
+        <li><a href="https://highpeaksw.com/watsonx-orchestrate-agent-governance/" target="_blank" rel="noopener">High Peak Software: watsonx Orchestrate Agent Governance</a></li>
+        <li><a href="https://developer.watson-orchestrate.ibm.com/webchat/customization_ui_configuration" target="_blank" rel="noopener">IBM watsonx Orchestrate ADK: Customizing the chat UI</a></li>
+      </ul>
+      <p>Documento de detalhamento para uso interno. As premissas assumidas (duração, formato de evento, plateia) estão marcadas ao longo do texto e devem ser confirmadas por quem for construir a demo.</p>
+    </div>
+  </main>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+  var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: prefersDark ? 'dark' : 'default',
+    themeVariables: prefersDark ? {
+      primaryColor: 'rgba(15,98,254,0.18)',
+      primaryTextColor: '#eef2f7',
+      primaryBorderColor: '#5b9dff',
+      lineColor: '#a7b2c2',
+      secondaryColor: 'rgba(105,41,196,0.22)',
+      tertiaryColor: '#161d27',
+      fontFamily: 'IBM Plex Sans, sans-serif'
+    } : {
+      primaryColor: '#e6effe',
+      primaryTextColor: '#10151d',
+      primaryBorderColor: '#0f62fe',
+      lineColor: '#4c5768',
+      secondaryColor: '#f1e9fb',
+      tertiaryColor: '#e9eef6',
+      fontFamily: 'IBM Plex Sans, sans-serif'
+    }
+  });
+</script>
+</body>
+</html>

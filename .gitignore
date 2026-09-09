@@ -1,0 +1,6 @@
+.env
+.env.*
+!.env.example
+Api Demo IBM.txt
+__pycache__/
+node_modules/
