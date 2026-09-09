@@ -16,14 +16,14 @@ function start() {
   const messages = $("#messages");
   const suggestions = $("#suggestions");
   messages.innerHTML = "";
-  $("#suggestions").style.display = "flex";
+  suggestions.style.display = "flex";
+  suggestions.innerHTML = options
+    .map((x) => `<button type="button">${x}</button>`)
+    .join("");
   add(
     "Olá! Sou o assistente do RDN Bank. Vou consultar os dados e orientar você com segurança. Como posso ajudar?",
   );
-  $("#suggestions").innerHTML = options
-    .map((x) => `<button>${x}</button>`)
-    .join("");
-  if (suggestions.parentElement !== messages) messages.appendChild(suggestions);
+  messages.appendChild(suggestions);
   document.querySelectorAll(".suggestions button").forEach(
     (b, i) =>
       (b.onclick = () => {
