@@ -115,6 +115,12 @@ body::before {
   overflow: hidden !important;
 }
 
+.msg {
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
+}
+
 .shell {
   width: min(1056px, calc(100vw - 32px)) !important;
   max-width: 1056px !important;
