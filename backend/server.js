@@ -56,7 +56,7 @@ async function chat(body) {
 function agentChatUrl() {
   if (process.env.WO_CHAT_URL) return process.env.WO_CHAT_URL;
   if (process.env.WO_API_URL && process.env.WO_AGENT_ID)
-    return `${process.env.WO_API_URL.replace(/\/$/, "")}/api/v1/orchestrate/${process.env.WO_AGENT_ID}/chat/completions`;
+    return `${process.env.WO_API_URL.replace(/\/$/, "")}/v1/orchestrate/${process.env.WO_AGENT_ID}/chat/completions`;
   return null;
 }
 async function streamChat(body, res) {
