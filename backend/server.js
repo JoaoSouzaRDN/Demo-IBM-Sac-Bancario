@@ -20,7 +20,7 @@ async function chat(body) {
       context,
     };
   }
-  body.context = context;
+  // Com o agente configurado, ele próprio chama as tools e devolve o contexto.
   if (!process.env.WO_CHAT_URL)
     return {
       reply:

@@ -12,6 +12,17 @@ function renderChecklist(active = 0, done = -1) {
   if (!panel) return;
   panel.innerHTML = `<b>Histórico do atendimento</b><div id="checklistSteps">${flowLabels.map((label, i) => `<div class="check ${i <= done ? "done" : i === active ? "active" : ""}"><i></i><span>${label}</span>${i === active ? "<small>em andamento</small>" : ""}</div>`).join("")}</div>`;
 }
+function renderAgentExecution(execution) {
+  const steps = Array.isArray(execution) ? execution : execution?.steps;
+  if (!Array.isArray(steps) || !steps.length) return false;
+  const panel = document.querySelector(".checklist");
+  panel.innerHTML = `<b>HistÃ³rico do atendimento</b><div id="checklistSteps">${steps.map((step, i) => {
+    const item = typeof step === "string" ? { label: step, status: "done" } : step;
+    const status = item.status || (item.completed ? "done" : "pending");
+    return `<div class="check ${status}"><i></i><span>${item.label || item.name || "Etapa do atendimento"}</span>${item.time || item.detail ? `<small>${item.time || item.detail}</small>` : ""}</div>`;
+  }).join("")}</div>`;
+  return true;
+}
 function add(t, w = "agent") {
   $("#messages").insertAdjacentHTML(
     "beforeend",
@@ -53,7 +64,7 @@ async function send(t) {
       body: JSON.stringify({ message: t }),
     });
     const d = await r.json();
-    renderChecklist(4, 3);
+    renderAgentExecution(d.execution || d.steps) || renderChecklist(4, 3);
     document.querySelectorAll(".agent").at(-1).remove();
     add(d.reply || d.output || "Atendimento concluído.");
   } catch (e) {
