@@ -29,15 +29,24 @@ with sync_playwright() as p:
     assert '?' in candidate
     assert page.locator('.save-case').count() == 0
     status = send('Sim, é esse Pix. Qual o status e por que não chegou?')
-    assert any(term in status.lower() for term in ['pendente', 'pending', 'aguardando'])
+    # The reply must be in Portuguese, even though the tool returns the
+    # status in English internally.
+    assert any(term in status.lower() for term in ['pendente', 'aguardando'])
+    assert 'pending' not in status.lower()
     assert 'spi' in status.lower() or 'liquidação' in status.lower()
     page.locator('.save-case').last.click()
+    # The saved-consultations sidebar is overlaid by the live progress panel
+    # for the rest of the session; "Novo atendimento" brings it back without
+    # losing what was saved (it's persisted to localStorage separately).
+    page.locator('#reset').click()
     assert page.locator('.saved-card').count() == 1
     page.screenshot(path=str(root / 'chat-pix-confirmed.png'))
     count = page.locator('.msg.agent').count()
     page.locator('.saved-open').click()
     page.wait_for_function('(count) => document.querySelectorAll(".msg.agent").length > count', arg=count, timeout=180000)
     print('REFRESH:', page.locator('.msg.agent').last.inner_text(), flush=True)
+    page.locator('#reset').click()
+    assert page.locator('.saved-card').count() == 1
     page.locator('.delete-saved').click()
     page.screenshot(path=str(root / 'chat-delete-confirmation.png'))
     page.get_by_role('button', name='Cancelar', exact=True).click()
