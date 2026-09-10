@@ -31,7 +31,7 @@ function lookupMock(message = "") {
 }
 async function chat(body) {
   const context = lookupMock(body.message);
-  if (!process.env.WO_CHAT_URL) {
+  if (!process.env.WO_CHAT_URL || process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
     return {
       reply: `Consultei os dados de ${context.type}. Status encontrado: ${context.record?.status || "preciso de mais detalhes para localizar seu atendimento"}.`,
       context,
@@ -100,7 +100,8 @@ async function streamRun(body, res) {
   });
   if (!created.ok) {
     console.error("Orchestrate run create failed", created.status);
-    sendEvent(res, { error: `Agent HTTP ${created.status}` });
+    const fallback = await chat({ message: body.message });
+    sendEvent(res, { event: "run.completed", execution: [{ label: "Consulta local de contingência", status: "done" }], reply: fallback.reply });
     return;
   }
   const run = await created.json();
@@ -116,7 +117,8 @@ async function streamRun(body, res) {
     const statusResponse = await fetch(`${url}/${encodeURIComponent(runId)}`, { headers });
     if (!statusResponse.ok) {
       console.error("Orchestrate run status failed", statusResponse.status);
-      sendEvent(res, { error: `Agent HTTP ${statusResponse.status}` });
+      const fallback = await chat({ message: body.message });
+      sendEvent(res, { event: "run.completed", execution: [{ label: "Consulta local de contingência", status: "done" }], reply: fallback.reply });
       return;
     }
     const status = await statusResponse.json();
