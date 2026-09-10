@@ -2,7 +2,10 @@ const http = require("http"),
   fs = require("fs"),
   path = require("path");
 const root = path.join(__dirname, "..", "frontend");
-const mockDb = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "mock-db", "data.json"), "utf8"));
+const { createProgress } = require("./progress");
+const mockDb = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "..", "mock-db", "data.json"), "utf8"),
+);
 let iamToken = null;
 let iamTokenExpiresAt = 0;
 async function getAuthToken() {
@@ -10,23 +13,48 @@ async function getAuthToken() {
   if (iamToken && Date.now() < iamTokenExpiresAt) return iamToken;
   const response = await fetch("https://iam.cloud.ibm.com/identity/token", {
     method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
-    body: new URLSearchParams({ grant_type: "urn:ibm:params:oauth:grant-type:apikey", apikey: process.env.WO_API_KEY }),
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Accept: "application/json",
+    },
+    body: new URLSearchParams({
+      grant_type: "urn:ibm:params:oauth:grant-type:apikey",
+      apikey: process.env.WO_API_KEY,
+    }),
   });
   if (!response.ok) throw new Error(`IAM token HTTP ${response.status}`);
   const data = await response.json();
   iamToken = data.access_token;
-  iamTokenExpiresAt = Date.now() + Math.max(60, (data.expiration - Math.floor(Date.now() / 1000) - 60)) * 1000;
+  iamTokenExpiresAt =
+    Date.now() +
+    Math.max(60, data.expiration - Math.floor(Date.now() / 1000) - 60) * 1000;
   return iamToken;
 }
 function lookupMock(message = "") {
-  const text = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const text = message
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
   if (text.includes("cart")) return { type: "Cartao", record: mockDb.cards[0] };
-  if (text.includes("pix") || text.includes("não chegou") || text.includes("nao chegou")) return { type: "Pix não recebido", record: mockDb.pix[0] };
-  if (text.includes("cartão") || text.includes("cartao")) return { type: "Cartão", record: mockDb.cards[0] };
-  if (text.includes("compra")) return { type: "Compra contestada", record: mockDb.purchases[0] };
-  if (text.includes("parcela") || text.includes("atras")) return { type: "Parcela em atraso", record: mockDb.loans[0] };
-  if (text.includes("cadastro") || text.includes("dados") || text.includes("email") || text.includes("telefone")) return { type: "Atualização cadastral", record: mockDb.profiles[0] };
+  if (
+    text.includes("pix") ||
+    text.includes("não chegou") ||
+    text.includes("nao chegou")
+  )
+    return { type: "Pix não recebido", record: mockDb.pix[0] };
+  if (text.includes("cartão") || text.includes("cartao"))
+    return { type: "Cartão", record: mockDb.cards[0] };
+  if (text.includes("compra"))
+    return { type: "Compra contestada", record: mockDb.purchases[0] };
+  if (text.includes("parcela") || text.includes("atras"))
+    return { type: "Parcela em atraso", record: mockDb.loans[0] };
+  if (
+    text.includes("cadastro") ||
+    text.includes("dados") ||
+    text.includes("email") ||
+    text.includes("telefone")
+  )
+    return { type: "Atualização cadastral", record: mockDb.profiles[0] };
   return { type: "Atendimento geral", record: null };
 }
 async function chat(body) {
@@ -60,13 +88,22 @@ function agentRunsUrl() {
 function extractRunText(value) {
   if (!value) return "";
   if (typeof value === "string") return value;
-  if (Array.isArray(value)) return value.map(extractRunText).filter(Boolean).join("\n");
+  if (Array.isArray(value))
+    return value.map(extractRunText).filter(Boolean).join("\n");
   if (typeof value === "object") {
     if (typeof value.reply === "string") return value.reply;
     if (typeof value.output === "string") return value.output;
     if (typeof value.text === "string") return value.text;
     if (typeof value.content === "string") return value.content;
-    for (const key of ["content", "messages", "message", "response", "result", "data", "output"]) {
+    for (const key of [
+      "content",
+      "messages",
+      "message",
+      "response",
+      "result",
+      "data",
+      "output",
+    ]) {
       const text = extractRunText(value[key]);
       if (text) return text;
     }
@@ -78,16 +115,24 @@ function sendEvent(res, payload) {
 }
 async function finalRunMessage(url, headers, threadId, runId) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
-    const response = await fetch(`${url.replace(/\/runs$/, "")}/threads/${encodeURIComponent(threadId)}/messages`, { headers });
+    const response = await fetch(
+      `${url.replace(/\/runs$/, "")}/threads/${encodeURIComponent(threadId)}/messages`,
+      { headers },
+    );
     if (!response.ok) throw new Error(`Messages HTTP ${response.status}`);
     const result = await response.json();
     const messages = Array.isArray(result) ? result : result.data || [];
-    const message = messages.find((item) => item.role === "assistant" && item.context?.wxo_run_id === runId);
+    const message = messages.find(
+      (item) => item.role === "assistant" && item.context?.wxo_run_id === runId,
+    );
     const text = extractRunText(message?.content);
     if (text) {
       try {
-        const structured = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ""));
-        if (typeof structured.reply === "string" && structured.reply.trim()) return { reply: structured.reply, execution: structured.execution };
+        const structured = JSON.parse(
+          text.replace(/^```(?:json)?\s*|\s*```$/g, ""),
+        );
+        if (typeof structured.reply === "string" && structured.reply.trim())
+          return { reply: structured.reply, execution: structured.execution };
       } catch {}
       return { reply: text };
     }
@@ -113,7 +158,9 @@ async function streamRun(body, res) {
   });
   if (!created.ok) {
     console.error("Orchestrate run create failed", created.status);
-    sendEvent(res, { error: `Não foi possível iniciar o agente (HTTP ${created.status}).` });
+    sendEvent(res, {
+      error: `Não foi possível iniciar o agente (HTTP ${created.status}).`,
+    });
     return;
   }
   const run = await created.json();
@@ -124,26 +171,70 @@ async function streamRun(body, res) {
     return;
   }
   sendEvent(res, { event: "run.started", run_id: runId });
+  const progress = createProgress((event) => sendEvent(res, event));
+  progress.consume({ id: "initial", event: "run.started" });
+  let eventsAvailable = true;
   for (let attempt = 0; attempt < 120; attempt += 1) {
+    if (res.destroyed) return;
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    const statusResponse = await fetch(`${url}/${encodeURIComponent(runId)}`, { headers });
+    if (eventsAvailable) {
+      try {
+        const eventsResponse = await fetch(
+          `${url}/${encodeURIComponent(runId)}/events?stream_timeout=1`,
+          { headers, signal: AbortSignal.timeout(10000) },
+        );
+        if (eventsResponse.ok) {
+          const events = await eventsResponse.json();
+          if (Array.isArray(events)) events.forEach(progress.consume);
+        } else {
+          eventsAvailable = false;
+        }
+      } catch {
+        eventsAvailable = false;
+      }
+    }
+    const statusResponse = await fetch(`${url}/${encodeURIComponent(runId)}`, {
+      headers,
+    });
     if (!statusResponse.ok) {
       console.error("Orchestrate run status failed", statusResponse.status);
-      sendEvent(res, { error: `Não foi possível acompanhar o agente (HTTP ${statusResponse.status}).` });
+      sendEvent(res, {
+        error: `Não foi possível acompanhar o agente (HTTP ${statusResponse.status}).`,
+      });
       return;
     }
     const status = await statusResponse.json();
     const state = String(status.status || status.state || "").toLowerCase();
-    if (["completed", "complete", "failed", "cancelled", "canceled", "error"].includes(state)) {
+    if (
+      [
+        "completed",
+        "complete",
+        "failed",
+        "cancelled",
+        "canceled",
+        "error",
+      ].includes(state)
+    ) {
       if (state === "completed" || state === "complete") {
-        const answer = await finalRunMessage(url, headers, run.thread_id || body.threadId, runId);
+        const answer = await finalRunMessage(
+          url,
+          headers,
+          run.thread_id || body.threadId,
+          runId,
+        );
+        progress.finish();
         sendEvent(res, { event: "run.completed", ...answer });
       } else {
-        sendEvent(res, { error: status.error || "O atendimento não foi concluído." });
+        sendEvent(res, {
+          error: status.error || "O atendimento não foi concluído.",
+        });
       }
       return;
     }
-    sendEvent(res, { event: "run.step.intermediate", status: state || "em andamento" });
+    sendEvent(res, {
+      event: "run.step.intermediate",
+      status: state || "em andamento",
+    });
   }
   sendEvent(res, { error: "Tempo limite ao aguardar o agente." });
 }
@@ -154,12 +245,19 @@ async function streamChat(body, res) {
     Connection: "keep-alive",
   });
   if (agentRunsUrl() && process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
-    try { await streamRun(body, res); } catch (e) { console.error("Orchestrate run error", e.message); sendEvent(res, { error: "Não foi possível conectar ao agente." }); }
+    try {
+      await streamRun(body, res);
+    } catch (e) {
+      console.error("Orchestrate run error", e.message);
+      sendEvent(res, { error: "Não foi possível conectar ao agente." });
+    }
     sendEvent(res, "[DONE]");
     return res.end();
   }
   if (process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
-    sendEvent(res, { error: "A integração do agente não está configurada no servidor." });
+    sendEvent(res, {
+      error: "A integração do agente não está configurada no servidor.",
+    });
     sendEvent(res, "[DONE]");
     return res.end();
   }
@@ -184,7 +282,9 @@ async function streamChat(body, res) {
     }),
   });
   if (!upstream.ok) {
-    res.write(`data: ${JSON.stringify({ error: `Agent HTTP ${upstream.status}` })}\n\n`);
+    res.write(
+      `data: ${JSON.stringify({ error: `Agent HTTP ${upstream.status}` })}\n\n`,
+    );
     return res.end();
   }
   for await (const chunk of upstream.body) res.write(chunk);
@@ -196,8 +296,12 @@ http
       let b = "";
       req.on("data", (c) => (b += c));
       req.on("end", async () => {
-        try { await streamChat(JSON.parse(b), res); }
-        catch (e) { if (!res.headersSent) res.writeHead(502); res.end(); }
+        try {
+          await streamChat(JSON.parse(b), res);
+        } catch (e) {
+          if (!res.headersSent) res.writeHead(502);
+          res.end();
+        }
       });
       return;
     }
@@ -215,20 +319,27 @@ http
       });
       return;
     }
-    const f = req.url === "/" ? "index.html" : req.url.slice(1),
-      p = path.join(root, f);
-    if (!p.startsWith(root) || !fs.existsSync(p))
+    const pathname = new URL(req.url, "http://localhost").pathname;
+    const f = pathname === "/" ? "index.html" : pathname.slice(1),
+      p = path.resolve(root, f);
+    if (
+      !p.startsWith(root + path.sep) ||
+      !fs.existsSync(p) ||
+      !fs.statSync(p).isFile()
+    )
       return res.writeHead(404).end();
     const types = {
       ".html": "text/html; charset=utf-8",
       ".css": "text/css; charset=utf-8",
       ".js": "application/javascript; charset=utf-8",
       ".json": "application/json",
+      ".svg": "image/svg+xml",
     };
     res.setHeader(
       "Content-Type",
       types[path.extname(p)] || "application/octet-stream",
     );
+    res.setHeader("Cache-Control", "no-cache");
     res.end(fs.readFileSync(p));
   })
   .listen(process.env.PORT || 3000, () =>

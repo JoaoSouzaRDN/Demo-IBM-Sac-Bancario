@@ -4,3 +4,6 @@
 Api Demo IBM.txt
 __pycache__/
 node_modules/
+frontend/assets/
+chat-*.png
+chat-*.log

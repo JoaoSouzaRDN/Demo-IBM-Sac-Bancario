@@ -19,19 +19,29 @@ with (root / 'chat-validation.log').open('w', encoding='utf-8') as log:
             page = browser.new_page(viewport={'width': 1440, 'height': 900})
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
-            page.goto('http://localhost:3217')
+            page.goto(os.environ.get('TEST_CHAT_URL', 'http://localhost:3217'))
+            page.screenshot(path=str(root / 'chat-initial.png'))
             page.locator('#suggestions button').first.click()
+            page.locator('.step.active').first.wait_for()
+            assert page.locator('.msg.agent').count() == 1
+            page.screenshot(path=str(root / 'chat-processing.png'))
             page.wait_for_function("document.querySelectorAll('.msg.agent').length === 2 && !document.querySelectorAll('.msg.agent')[1].textContent.includes('Consultando os sistemas')", timeout=160000)
             reply = page.locator('.msg.agent').last.inner_text()
             print('REPLY:', reply)
             assert len(reply) > 100 and 'Não foi possível' not in reply
             assert not errors, errors
+            assert page.locator('.step.active').count() == 0
+            assert page.locator('.step.done').count() >= 2
             assert page.locator('#suggestions').is_hidden()
             page.screenshot(path=str(root / 'chat-validation.png'))
             page.locator('#reset').click()
             assert page.locator('.msg.agent').count() == 1
             assert page.locator('#suggestions button').count() == 5
             assert page.locator('#suggestions').is_visible()
+            page.set_viewport_size({'width': 390, 'height': 844})
+            page.screenshot(path=str(root / 'chat-mobile.png'))
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+            assert page.locator('#input').is_visible()
             print('PASS: agent reply visible, no browser errors, reset restores greeting and suggestions')
             browser.close()
     finally:

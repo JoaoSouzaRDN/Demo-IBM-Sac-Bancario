@@ -4,9 +4,19 @@
   "private": true,
   "description": "Demo de SAC bancário com watsonx Orchestrate",
   "scripts": {
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "build": "node tools/build.cjs",
+    "postinstall": "npm run build"
   },
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.9.6"
   }
 }
