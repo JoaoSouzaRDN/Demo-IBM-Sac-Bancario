@@ -313,32 +313,6 @@ function App() {
                     />
                   )}
                   <div className={`message-row ${message.role}`}>
-                    <span className="message-author">
-                      {message.role === "agent" && message.steps ? (
-                        <button
-                          className="steps-toggle"
-                          onClick={() =>
-                            setCollapsedSteps((previous) => ({
-                              ...previous,
-                              [index]: !previous[index],
-                            }))
-                          }
-                          aria-expanded={!collapsedSteps[index]}
-                          aria-label={
-                            collapsedSteps[index]
-                              ? "Expandir etapas"
-                              : "Recolher etapas"
-                          }
-                        >
-                          {collapsedSteps[index] ? "⌄" : "⌃"}
-                        </button>
-                      ) : (
-                        message.role === "user" && (
-                          <span className="avatar user" />
-                        )
-                      )}
-                      {message.role === "agent" ? "RDN Assistente" : "Você"}
-                    </span>
                     <div className={`msg ${message.role}`}>{message.text}</div>
                     {message.cases?.map((item) => {
                       const exists = saved.some(

@@ -94,6 +94,32 @@ export function Processing({
   const listRef = useStepFlip(steps);
   return (
     <div className="processing">
+      <div className="processing-bar">
+        {!expanded && (
+          <>
+            <span
+              className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
+            >
+              {!busy && !error && <Icon check />}
+            </span>
+            <span className={busy ? "shimmer-text" : undefined}>
+              {busy
+                ? active?.label || "Processando solicitação"
+                : error
+                  ? "Processamento interrompido"
+                  : `${steps.length} etapas concluídas`}
+            </span>
+          </>
+        )}
+        <button
+          className="processing-chevron-btn"
+          onClick={toggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? "Recolher etapas" : "Expandir etapas"}
+        >
+          {expanded ? "⌃" : "⌄"}
+        </button>
+      </div>
       {expanded && (
         <ol className="step-flow" ref={listRef}>
           {orderedSteps(steps).map((step) => (
@@ -111,32 +137,6 @@ export function Processing({
             </li>
           ))}
         </ol>
-      )}
-      {/* When controlled, the toggle lives in the message header instead. */}
-      {!controlled && (
-        <button
-          className="processing-toggle"
-          onClick={toggle}
-          aria-expanded={expanded}
-        >
-          {!expanded && (
-            <span
-              className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
-            >
-              {!busy && !error && <Icon check />}
-            </span>
-          )}
-          <span className={busy && !expanded ? "shimmer-text" : undefined}>
-            {expanded
-              ? "Recolher"
-              : busy
-                ? active?.label || "Processando solicitação"
-                : error
-                  ? "Processamento interrompido"
-                  : `${steps.length} etapas concluídas`}
-          </span>
-          <span className="processing-chevron">{expanded ? "⌃" : "⌄"}</span>
-        </button>
       )}
     </div>
   );

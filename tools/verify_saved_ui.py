@@ -23,12 +23,12 @@ try:
         page.locator('#suggestions button').first.click()
         page.locator('.save-case').wait_for()
         assert page.locator('.processing').count() == 1
-        # Finished steps stay expanded by default; the toggle (now in the
-        # message header, next to "RDN Assistente") only collapses them.
+        # Finished steps stay expanded by default; the top-right chevron
+        # button only collapses/expands them.
         assert page.locator('.step-flow').is_visible()
-        page.locator('.steps-toggle').click()
+        page.locator('.processing-chevron-btn').click()
         assert page.locator('.step-flow').count() == 0
-        page.locator('.steps-toggle').click()
+        page.locator('.processing-chevron-btn').click()
         assert page.locator('.step-flow').is_visible()
         page.locator('.save-case').click()
         # Saved sidebar is overlaid by the live progress panel until a new
