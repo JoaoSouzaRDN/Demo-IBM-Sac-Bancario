@@ -703,30 +703,65 @@ h2 {
   max-width: 90%;
   width: fit-content;
 }
-.processing-bar {
+.processing-toggle {
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 7px 3px;
   color: #bfc0c8;
+  background: transparent;
+  border: 0;
   font-size: 11px;
-  min-height: 22px;
+  text-align: left;
+  width: 100%;
 }
-.processing-chevron-btn {
+.chevron-icon {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  color: #8d919d;
+  transition: transform 0.3s ease, color 0.2s ease;
+}
+.chevron-icon.open {
+  transform: rotate(180deg);
+}
+.processing-toggle:hover .chevron-icon {
+  color: #cfd0d8;
+}
+/* The toggle rides on the top-most row of the (re-orderable) step
+   list, so it always sits next to whatever line is currently on top
+   instead of floating in a header of its own. */
+.processing-toggle-inline {
   margin-left: auto;
   flex: none;
   padding: 2px 4px;
-  display: grid;
-  place-items: center;
   background: none;
   border: 0;
-  color: #bfc0c8;
-  font-size: 14px;
-  line-height: 1;
-  transition: color 0.2s;
+  display: grid;
+  place-items: center;
 }
-.processing-chevron-btn:hover {
-  color: #fff;
+.processing-toggle-inline:hover .chevron-icon {
+  color: #cfd0d8;
+}
+/* Grid-rows accordion: animates open/closed without measuring
+   heights in JS, so the message that follows visibly slides as the
+   step list grows or shrinks. */
+.step-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+.step-collapse.open {
+  grid-template-rows: 1fr;
+}
+.step-collapse > div {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .step-collapse {
+    transition: none;
+  }
 }
 .mini-light {
   width: 13px;

@@ -23,13 +23,26 @@ try:
         page.locator('#suggestions button').first.click()
         page.locator('.save-case').wait_for()
         assert page.locator('.processing').count() == 1
-        # Finished steps stay expanded by default; the top-right chevron
-        # button only collapses/expands them.
-        assert page.locator('.step-flow').is_visible()
-        page.locator('.processing-chevron-btn').click()
-        assert page.locator('.step-flow').count() == 0
-        page.locator('.processing-chevron-btn').click()
-        assert page.locator('.step-flow').is_visible()
+        # Finished steps stay expanded by default; the chevron toggle
+        # only collapses/expands them.
+        def collapse_open():
+            return 'open' in page.eval_on_selector('.step-collapse', 'el => el.className')
+
+        def toggle_steps():
+            # The toggle rides on the top-most step row while expanded, and
+            # becomes its own summary row once collapsed; only one of the
+            # two exists as an actionable toggle at a time.
+            selector = '.processing-toggle-inline' if collapse_open() else '.processing-toggle'
+            page.locator(selector).click()
+
+        assert collapse_open()
+        toggle_steps()
+        # The list stays in the DOM and animates its wrapper to zero height
+        # rather than unmounting, so check the open/closed class, not
+        # .step-flow's own (clipped-away) bounding box.
+        assert not collapse_open()
+        toggle_steps()
+        assert collapse_open()
         page.locator('.save-case').click()
         # Saved sidebar is overlaid by the live progress panel until a new
         # attendance starts — "Novo atendimento" brings it back.

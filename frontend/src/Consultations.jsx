@@ -92,53 +92,81 @@ export function Processing({
   const toggle = controlled ? onToggle : () => setLocalExpanded((value) => !value);
   const active = steps.find((step) => step.status === "active");
   const listRef = useStepFlip(steps);
+  const ordered = orderedSteps(steps);
   return (
     <div className="processing">
-      <div className="processing-bar">
-        {!expanded && (
-          <>
-            <span
-              className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
-            >
-              {!busy && !error && <Icon check />}
-            </span>
-            <span className={busy ? "shimmer-text" : undefined}>
-              {busy
-                ? active?.label || "Processando solicitação"
-                : error
-                  ? "Processamento interrompido"
-                  : `${steps.length} etapas concluídas`}
-            </span>
-          </>
-        )}
+      {!expanded && (
         <button
-          className="processing-chevron-btn"
+          className="processing-toggle"
           onClick={toggle}
           aria-expanded={expanded}
-          aria-label={expanded ? "Recolher etapas" : "Expandir etapas"}
+          aria-label="Expandir etapas"
         >
-          {expanded ? "⌃" : "⌄"}
+          <span
+            className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
+          >
+            {!busy && !error && <Icon check />}
+          </span>
+          <span className={busy ? "shimmer-text" : undefined}>
+            {busy
+              ? active?.label || "Processando solicitação"
+              : error
+                ? "Processamento interrompido"
+                : `${steps.length} etapas concluídas`}
+          </span>
+          <Chevron open={false} />
         </button>
-      </div>
-      {expanded && (
-        <ol className="step-flow" ref={listRef}>
-          {orderedSteps(steps).map((step) => (
-            <li
-              key={step.id}
-              data-flip-key={step.id}
-              className={`flow-${step.status}`}
-            >
-              <span className="flow-light">
-                {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
-              </span>
-              <span className={step.status === "active" ? "shimmer-text" : undefined}>
-                {step.label}
-              </span>
-            </li>
-          ))}
-        </ol>
       )}
+      <div className={`step-collapse ${expanded ? "open" : ""}`}>
+        <div>
+          <ol className="step-flow" ref={listRef}>
+            {ordered.map((step, position) => (
+              <li
+                key={step.id}
+                data-flip-key={step.id}
+                className={`flow-${step.status}`}
+              >
+                <span className="flow-light">
+                  {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
+                </span>
+                <span className={step.status === "active" ? "shimmer-text" : undefined}>
+                  {step.label}
+                </span>
+                {position === 0 && (
+                  <button
+                    className="processing-toggle-inline"
+                    onClick={toggle}
+                    aria-expanded={expanded}
+                    aria-label="Recolher etapas"
+                  >
+                    <Chevron open />
+                  </button>
+                )}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
     </div>
+  );
+}
+
+function Chevron({ open }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+      className={`chevron-icon ${open ? "open" : ""}`}
+    >
+      <path
+        d="m6 9 6 6 6-6"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }
 
