@@ -701,6 +701,7 @@ h2 {
 .processing {
   margin: 0 0 12px;
   max-width: 90%;
+  width: fit-content;
 }
 .processing-bar {
   display: flex;
@@ -714,20 +715,17 @@ h2 {
 .processing-chevron-btn {
   margin-left: auto;
   flex: none;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+  padding: 2px 4px;
   display: grid;
   place-items: center;
-  background: #ffffff0a;
+  background: none;
   border: 0;
   color: #bfc0c8;
   font-size: 14px;
   line-height: 1;
-  transition: background 0.2s, color 0.2s;
+  transition: color 0.2s;
 }
 .processing-chevron-btn:hover {
-  background: #ffffff14;
   color: #fff;
 }
 .mini-light {
