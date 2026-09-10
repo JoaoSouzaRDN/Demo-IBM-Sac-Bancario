@@ -16,32 +16,26 @@ try:
         record = {'id': 'pix-20260908-8841', 'category': 'pix', 'title': 'Pix de R$ 850 em 08/09', 'status': 'pending'}
         def reply(route):
             requests.append(route.request.post_data_json)
-            events = [{'thread_id': 'test-thread'}, {'event': 'progress', 'steps': [{'id': 'pix', 'label': 'Verificando Pix', 'status': 'done'}]}, {'reply': 'Pix pendente, aguardando confirmação do SPI.', 'cases': [record]}]
+            events = [{'thread_id': 'test-thread'}, {'event': 'progress', 'steps': [{'id': 'understand', 'label': 'Entendendo sua solicitação', 'status': 'done'}, {'id': 'pix', 'label': 'Verificando Pix', 'status': 'done'}]}, {'reply': 'Pix pendente, aguardando confirmação do SPI.', 'cases': [record]}]
             route.fulfill(content_type='text/event-stream', body=''.join('data: '+json.dumps(e)+'\n\n' for e in events))
         page.route('**/api/chat/stream', reply)
         page.goto('http://localhost:3218')
         page.locator('#suggestions button').first.click()
         page.locator('.save-case').wait_for()
         assert page.locator('.processing').count() == 1
-        # Finished steps stay expanded by default; the chevron toggle
-        # only collapses/expands them.
+        # Finished steps stay expanded by default; the toggle rides on the
+        # anchor row (the same DOM node throughout) and every other row
+        # collapses into it via its own .flow-row-collapse wrapper.
         def collapse_open():
-            return 'open' in page.eval_on_selector('.step-collapse', 'el => el.className')
-
-        def toggle_steps():
-            # The toggle rides on the top-most step row while expanded, and
-            # becomes its own summary row once collapsed; only one of the
-            # two exists as an actionable toggle at a time.
-            selector = '.processing-toggle-inline' if collapse_open() else '.processing-toggle'
-            page.locator(selector).click()
+            return 'open' in page.eval_on_selector('.flow-row-collapse', 'el => el.className')
 
         assert collapse_open()
-        toggle_steps()
-        # The list stays in the DOM and animates its wrapper to zero height
-        # rather than unmounting, so check the open/closed class, not
-        # .step-flow's own (clipped-away) bounding box.
+        page.locator('.processing-toggle-inline').click()
+        # The collapsing row stays in the DOM and animates its own wrapper
+        # to zero height rather than unmounting, so check the open/closed
+        # class rather than presence/visibility.
         assert not collapse_open()
-        toggle_steps()
+        page.locator('.processing-toggle-inline').click()
         assert collapse_open()
         page.locator('.save-case').click()
         # Saved sidebar is overlaid by the live progress panel until a new

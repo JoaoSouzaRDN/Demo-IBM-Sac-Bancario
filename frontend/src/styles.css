@@ -205,9 +205,25 @@ input:focus-visible {
   flex-direction: column;
   align-items: flex-start;
   margin-bottom: 24px;
+  animation: message-in 0.28s ease;
 }
 .message-row.user {
   align-items: flex-end;
+}
+@keyframes message-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .message-row {
+    animation: none;
+  }
 }
 .msg {
   padding: 15px 18px;
@@ -451,8 +467,8 @@ h2 {
 .step-light {
   flex: none;
   margin-top: 2px;
-  width: 20px;
-  height: 20px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -463,20 +479,20 @@ h2 {
 .step.active .step-light {
   background: radial-gradient(circle at 35% 25%, #ffcb72, #ff881c 62%, #ff6615);
   box-shadow:
-    0 0 0 5px #ff881c20,
-    0 0 20px #ff881c55;
+    0 0 0 3px #ff881c20,
+    0 0 14px #ff881c50;
   animation: breathe 1.7s ease-in-out infinite;
 }
 .step.done .step-light {
   background: var(--green);
   color: #073d29;
   box-shadow:
-    0 0 0 4px #37ffb115,
-    0 0 13px #37ffb126;
+    0 0 0 3px #37ffb115,
+    0 0 10px #37ffb126;
 }
 .step.done svg {
-  width: 14px;
-  height: 14px;
+  width: 12px;
+  height: 12px;
 }
 .step.error .step-light {
   background: #ff7777;
@@ -704,18 +720,6 @@ h2 {
   max-width: 90%;
   width: fit-content;
 }
-.processing-toggle {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 3px;
-  color: #bfc0c8;
-  background: transparent;
-  border: 0;
-  font-size: 11px;
-  text-align: left;
-  width: 100%;
-}
 .chevron-icon {
   width: 12px;
   height: 12px;
@@ -726,12 +730,10 @@ h2 {
 .chevron-icon.open {
   transform: rotate(180deg);
 }
-.processing-toggle:hover .chevron-icon {
-  color: #cfd0d8;
-}
-/* The toggle rides on the top-most row of the (re-orderable) step
-   list, so it always sits next to whatever line is currently on top
-   instead of floating in a header of its own. */
+/* The toggle rides on whichever row is the current "anchor" (the running
+   step while busy, otherwise the top row) — always the same DOM node, so
+   the chevron can actually rotate in place instead of being swapped for a
+   different element each time. */
 .processing-toggle-inline {
   margin-left: auto;
   flex: none;
@@ -744,67 +746,6 @@ h2 {
 .processing-toggle-inline:hover .chevron-icon {
   color: #cfd0d8;
 }
-/* Grid-rows accordion: animates open/closed without measuring
-   heights in JS, so the message that follows visibly slides as the
-   step list grows or shrinks. */
-.step-collapse {
-  display: grid;
-  grid-template-rows: 0fr;
-  transition: grid-template-rows 0.3s ease;
-}
-.step-collapse.open {
-  grid-template-rows: 1fr;
-}
-.step-collapse > div {
-  min-height: 0;
-  overflow: hidden;
-}
-@media (prefers-reduced-motion: reduce) {
-  .step-collapse {
-    transition: none;
-  }
-}
-.mini-light {
-  width: 13px;
-  height: 13px;
-  flex: none;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  font-size: 10px;
-}
-.mini-light.active {
-  background: #ff8a19;
-  animation: breathe-mini 1.7s ease-in-out infinite;
-}
-@keyframes breathe-mini {
-  0%,
-  100% {
-    transform: scale(0.9);
-    box-shadow: 0 0 0 2px #ff881c22;
-  }
-  50% {
-    transform: scale(1);
-    box-shadow: 0 0 0 4px #ff881c30;
-  }
-}
-.mini-light svg {
-  width: 9px;
-  height: 9px;
-}
-.mini-light.big {
-  width: 19px;
-  height: 19px;
-}
-.mini-light.big svg {
-  width: 13px;
-  height: 13px;
-}
-.mini-light.big.done {
-  background: #37ffb115;
-  color: #37ffb1;
-  box-shadow: 0 0 0 3px #37ffb10d;
-}
 /* The step that's actually running gets the big breathing dot, right at
    its own row; finished steps shrink to a small check as they float up. */
 .step-flow {
@@ -812,13 +753,36 @@ h2 {
   margin: 2px 0 6px;
   padding: 0;
 }
-.step-flow li {
+.flow-row {
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 5px 0;
   font-size: 11px;
   color: #a8aab4;
+}
+/* Every row but the anchor collapses into it: a per-row grid-rows
+   accordion, so as each one shrinks the rows below it in the same list
+   naturally ride up to fill the gap — the "converging into the first
+   row" motion — without any JS position math. */
+.flow-row-collapse {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition: grid-template-rows 0.3s ease, opacity 0.25s ease;
+}
+.flow-row-collapse.open {
+  grid-template-rows: 1fr;
+  opacity: 1;
+}
+.flow-row-collapse > div {
+  min-height: 0;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: reduce) {
+  .flow-row-collapse {
+    transition: none;
+  }
 }
 .flow-light {
   flex: none;
@@ -851,13 +815,24 @@ h2 {
   font-size: 12px;
 }
 .flow-active .flow-light {
-  width: 19px;
-  height: 19px;
+  width: 16px;
+  height: 16px;
   background: radial-gradient(circle at 35% 25%, #ffcb72, #ff881c 62%, #ff6615);
   box-shadow:
-    0 0 0 4px #ff881c1a,
-    0 0 14px #ff881c40;
+    0 0 0 3px #ff881c1a,
+    0 0 10px #ff881c40;
   animation: breathe-mini 1.7s ease-in-out infinite;
+}
+@keyframes breathe-mini {
+  0%,
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 2px #ff881c22;
+  }
+  50% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px #ff881c30;
+  }
 }
 .shimmer-text {
   background: linear-gradient(
@@ -888,13 +863,6 @@ h2 {
     color: #8d919d;
     background: none;
   }
-}
-.mini-light.done {
-  color: #37ffb1;
-  background: #37ffb110;
-}
-.mini-light.failed {
-  background: #ff7a7a;
 }
 .compact-steps {
   list-style: none;

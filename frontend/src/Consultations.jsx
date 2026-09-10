@@ -106,60 +106,62 @@ export function Processing({
   const active = steps.find((step) => step.status === "active");
   const listRef = useStepFlip(steps);
   const ordered = orderedSteps(steps);
+  // The row that stays put and carries the toggle: while busy, that's
+  // whatever is actively running (so collapsing never hides the fact that
+  // it's still working); once settled, it's simply the top row. Every other
+  // row collapses into it — same button, same DOM node, the whole time, so
+  // the chevron can actually rotate instead of being swapped for a
+  // different element.
+  const anchorId = busy && active ? active.id : ordered[0]?.id;
   return (
     <div className="processing">
-      {!expanded && (
-        <button
-          className="processing-toggle"
-          onClick={toggle}
-          aria-expanded={expanded}
-          aria-label="Expandir etapas"
-        >
-          <span
-            className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
-          >
-            {!busy && !error && <Icon check />}
-          </span>
-          <span className={busy ? "shimmer-text" : undefined}>
-            {busy
-              ? active?.label || "Processando solicitação"
-              : error
-                ? "Processamento interrompido"
-                : `${steps.length} etapas concluídas`}
-          </span>
-          <Chevron open={false} />
-        </button>
-      )}
-      <div className={`step-collapse ${expanded ? "open" : ""}`}>
-        <div>
-          <ol className="step-flow" ref={listRef}>
-            {ordered.map((step, position) => (
+      <ol className="step-flow" ref={listRef}>
+        {ordered.map((step) => {
+          const isAnchor = step.id === anchorId;
+          const row = (
+            <>
+              <span className="flow-light">
+                {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
+              </span>
+              <span className={step.status === "active" ? "shimmer-text" : undefined}>
+                {step.label}
+              </span>
+              {isAnchor && (
+                <button
+                  className="processing-toggle-inline"
+                  onClick={toggle}
+                  aria-expanded={expanded}
+                  aria-label={expanded ? "Recolher etapas" : "Expandir etapas"}
+                >
+                  <Chevron open={expanded} />
+                </button>
+              )}
+            </>
+          );
+          if (isAnchor) {
+            return (
               <li
                 key={step.id}
                 data-flip-key={step.id}
-                className={`flow-${step.status}`}
+                className={`flow-row flow-${step.status}`}
               >
-                <span className="flow-light">
-                  {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
-                </span>
-                <span className={step.status === "active" ? "shimmer-text" : undefined}>
-                  {step.label}
-                </span>
-                {position === 0 && (
-                  <button
-                    className="processing-toggle-inline"
-                    onClick={toggle}
-                    aria-expanded={expanded}
-                    aria-label="Recolher etapas"
-                  >
-                    <Chevron open />
-                  </button>
-                )}
+                {row}
               </li>
-            ))}
-          </ol>
-        </div>
-      </div>
+            );
+          }
+          return (
+            <li
+              key={step.id}
+              data-flip-key={step.id}
+              className={`flow-row-collapse ${expanded ? "open" : ""}`}
+            >
+              <div>
+                <div className={`flow-row flow-${step.status}`}>{row}</div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
     </div>
   );
 }
