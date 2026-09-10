@@ -4,7 +4,8 @@ const http = require("http"),
 const root = path.join(__dirname, "..", "frontend");
 const mockDb = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "mock-db", "data.json"), "utf8"));
 function lookupMock(message = "") {
-  const text = message.toLowerCase();
+  const text = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (text.includes("cart")) return { type: "Cartao", record: mockDb.cards[0] };
   if (text.includes("pix") || text.includes("não chegou") || text.includes("nao chegou")) return { type: "Pix não recebido", record: mockDb.pix[0] };
   if (text.includes("cartão") || text.includes("cartao")) return { type: "Cartão", record: mockDb.cards[0] };
   if (text.includes("compra")) return { type: "Compra contestada", record: mockDb.purchases[0] };
@@ -36,8 +37,56 @@ async function chat(body) {
   });
   return await r.json();
 }
+function agentChatUrl() {
+  if (process.env.WO_CHAT_URL) return process.env.WO_CHAT_URL;
+  if (process.env.WO_API_URL && process.env.WO_AGENT_ID)
+    return `${process.env.WO_API_URL.replace(/\/$/, "")}/api/v1/orchestrate/${process.env.WO_AGENT_ID}/chat/completions`;
+  return null;
+}
+async function streamChat(body, res) {
+  const url = agentChatUrl();
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream; charset=utf-8",
+    "Cache-Control": "no-cache, no-transform",
+    Connection: "keep-alive",
+  });
+  if (!url) {
+    res.write(`data: ${JSON.stringify(await chat(body))}\n\n`);
+    res.write("data: [DONE]\n\n");
+    return res.end();
+  }
+  const upstream = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${process.env.WO_API_KEY}`,
+      ...(body.threadId ? { "X-IBM-THREAD-ID": body.threadId } : {}),
+    },
+    body: JSON.stringify({
+      messages: [{ role: "user", content: body.message }],
+      additional_parameters: {},
+      context: {},
+      stream: true,
+    }),
+  });
+  if (!upstream.ok) {
+    res.write(`data: ${JSON.stringify({ error: `Agent HTTP ${upstream.status}` })}\n\n`);
+    return res.end();
+  }
+  for await (const chunk of upstream.body) res.write(chunk);
+  res.end();
+}
 http
   .createServer((req, res) => {
+    if (req.url === "/api/chat/stream" && req.method === "POST") {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", async () => {
+        try { await streamChat(JSON.parse(b), res); }
+        catch (e) { if (!res.headersSent) res.writeHead(502); res.end(); }
+      });
+      return;
+    }
     if (req.url === "/api/chat" && req.method === "POST") {
       let b = "";
       req.on("data", (c) => (b += c));

@@ -58,6 +58,40 @@ async function send(t) {
   add("Consultando os sistemas do banco…");
   try {
     renderChecklist(2, 1);
+    const stream = await fetch("/api/chat/stream", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: t, threadId: window.__wxoThreadId }),
+    });
+    const reader = stream.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "", reply = "";
+    const placeholder = document.querySelectorAll(".agent").at(-1);
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop();
+      for (const event of events) {
+        const line = event.split("\n").find((x) => x.startsWith("data: "));
+        if (!line) continue;
+        const raw = line.slice(6).trim();
+        if (raw === "[DONE]") continue;
+        let data;
+        try { data = JSON.parse(raw); } catch { continue; }
+        if (data.thread_id) window.__wxoThreadId = data.thread_id;
+        if (renderAgentExecution(data.execution || data.steps)) continue;
+        const eventName = data.event || data.type;
+        if (eventName?.includes("step")) renderChecklist(eventName.includes("completed") ? 3 : 2, eventName.includes("completed") ? 2 : 1);
+        const delta = data.choices?.[0]?.delta?.content || data.delta?.text || data.content || data.reply || "";
+        if (typeof delta === "string") reply += delta;
+      }
+    }
+    placeholder?.remove();
+    add(reply || "Atendimento concluÃ­do.");
+    renderChecklist(4, 3);
+    return;
     const r = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
