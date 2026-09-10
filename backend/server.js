@@ -146,6 +146,12 @@ async function streamChat(body, res) {
     sendEvent(res, "[DONE]");
     return res.end();
   }
+  if (process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
+    const fallback = await chat({ message: body.message });
+    sendEvent(res, { event: "run.completed", execution: [{ label: "Consulta de dados", status: "done" }], reply: fallback.reply });
+    sendEvent(res, "[DONE]");
+    return res.end();
+  }
   const url = agentChatUrl();
   if (!url) {
     res.write(`data: ${JSON.stringify(await chat(body))}\n\n`);
