@@ -209,6 +209,10 @@ input:focus-visible {
 }
 .message-row.user {
   align-items: flex-end;
+  /* Slides in from the same side it's aligned to, instead of sharing the
+     agent's straight-up fade — makes your own message read as its own,
+     more deliberate entrance rather than just appearing. */
+  animation: message-in-user 0.3s cubic-bezier(0.2, 0.7, 0.3, 1);
 }
 @keyframes message-in {
   from {
@@ -218,6 +222,16 @@ input:focus-visible {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+@keyframes message-in-user {
+  from {
+    opacity: 0;
+    transform: translate(18px, 6px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
   }
 }
 @media (prefers-reduced-motion: reduce) {
