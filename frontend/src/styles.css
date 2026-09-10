@@ -226,11 +226,25 @@ input:focus-visible {
   border-radius: 50%;
   flex: none;
 }
-.avatar.agent {
-  background: radial-gradient(circle at 35% 30%, #37ffb1, #17b37c 70%);
-}
 .avatar.user {
   background: linear-gradient(135deg, #da22ff, #9733ee);
+}
+.steps-toggle {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  background: transparent;
+  border: 0;
+  color: #8d919d;
+  font-size: 10px;
+  line-height: 1;
+}
+.steps-toggle:hover {
+  background: #ffffff0d;
+  color: #bfc0c8;
 }
 .msg {
   padding: 15px 18px;

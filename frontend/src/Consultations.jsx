@@ -79,8 +79,17 @@ export function validCases(cases) {
     : [];
 }
 
-export function Processing({ steps, busy, error }) {
-  const [expanded, setExpanded] = React.useState(true);
+export function Processing({
+  steps,
+  busy,
+  error,
+  expanded: controlledExpanded,
+  onToggle,
+}) {
+  const [localExpanded, setLocalExpanded] = React.useState(true);
+  const controlled = controlledExpanded !== undefined;
+  const expanded = controlled ? controlledExpanded : localExpanded;
+  const toggle = controlled ? onToggle : () => setLocalExpanded((value) => !value);
   const active = steps.find((step) => step.status === "active");
   const listRef = useStepFlip(steps);
   return (
@@ -103,29 +112,32 @@ export function Processing({ steps, busy, error }) {
           ))}
         </ol>
       )}
-      <button
-        className="processing-toggle"
-        onClick={() => setExpanded((value) => !value)}
-        aria-expanded={expanded}
-      >
-        {!expanded && (
-          <span
-            className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
-          >
-            {!busy && !error && <Icon check />}
+      {/* When controlled, the toggle lives in the message header instead. */}
+      {!controlled && (
+        <button
+          className="processing-toggle"
+          onClick={toggle}
+          aria-expanded={expanded}
+        >
+          {!expanded && (
+            <span
+              className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
+            >
+              {!busy && !error && <Icon check />}
+            </span>
+          )}
+          <span className={busy && !expanded ? "shimmer-text" : undefined}>
+            {expanded
+              ? "Recolher"
+              : busy
+                ? active?.label || "Processando solicitação"
+                : error
+                  ? "Processamento interrompido"
+                  : `${steps.length} etapas concluídas`}
           </span>
-        )}
-        <span className={busy && !expanded ? "shimmer-text" : undefined}>
-          {expanded
-            ? "Recolher"
-            : busy
-              ? active?.label || "Processando solicitação"
-              : error
-                ? "Processamento interrompido"
-                : `${steps.length} etapas concluídas`}
-        </span>
-        <span className="processing-chevron">{expanded ? "⌃" : "⌄"}</span>
-      </button>
+          <span className="processing-chevron">{expanded ? "⌃" : "⌄"}</span>
+        </button>
+      )}
     </div>
   );
 }

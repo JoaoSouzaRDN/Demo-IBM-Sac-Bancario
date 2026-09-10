@@ -114,6 +114,7 @@ function App() {
   const [flashKey, setFlashKey] = useState(null);
   const [history, setHistory] = useState([]);
   const [expandedSuggestions, setExpandedSuggestions] = useState(false);
+  const [collapsedSteps, setCollapsedSteps] = useState({});
   const lastTurn = useRef(null);
   const stepQueue = useRef([]);
   const stepTimer = useRef(null);
@@ -168,6 +169,7 @@ function App() {
     setSteps([]);
     setHistory([]);
     setExpandedSuggestions(false);
+    setCollapsedSteps({});
     setBusy(false);
     setError("");
     setInput("");
@@ -298,11 +300,43 @@ function App() {
               {messages.map((message, index) => (
                 <React.Fragment key={index}>
                   {message.steps && (
-                    <Processing steps={message.steps} busy={false} />
+                    <Processing
+                      steps={message.steps}
+                      busy={false}
+                      expanded={!collapsedSteps[index]}
+                      onToggle={() =>
+                        setCollapsedSteps((previous) => ({
+                          ...previous,
+                          [index]: !previous[index],
+                        }))
+                      }
+                    />
                   )}
                   <div className={`message-row ${message.role}`}>
                     <span className="message-author">
-                      <span className={`avatar ${message.role}`} />
+                      {message.role === "agent" && message.steps ? (
+                        <button
+                          className="steps-toggle"
+                          onClick={() =>
+                            setCollapsedSteps((previous) => ({
+                              ...previous,
+                              [index]: !previous[index],
+                            }))
+                          }
+                          aria-expanded={!collapsedSteps[index]}
+                          aria-label={
+                            collapsedSteps[index]
+                              ? "Expandir etapas"
+                              : "Recolher etapas"
+                          }
+                        >
+                          {collapsedSteps[index] ? "⌄" : "⌃"}
+                        </button>
+                      ) : (
+                        message.role === "user" && (
+                          <span className="avatar user" />
+                        )
+                      )}
                       {message.role === "agent" ? "RDN Assistente" : "Você"}
                     </span>
                     <div className={`msg ${message.role}`}>{message.text}</div>
