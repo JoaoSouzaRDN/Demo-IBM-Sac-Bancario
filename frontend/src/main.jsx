@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./styles.css";
 import {
   Processing,
+  LiveProgress,
   SavedSidebar,
   DeleteConfirmation,
   validCases,
@@ -218,6 +219,7 @@ function App() {
                   )}
                   <div className={`message-row ${message.role}`}>
                     <span className="message-author">
+                      <span className={`avatar ${message.role}`} />
                       {message.role === "agent" ? "RDN Assistente" : "Você"}
                     </span>
                     <div className={`msg ${message.role}`}>{message.text}</div>
@@ -303,16 +305,19 @@ function App() {
               )}
             </form>
           </section>
-          <SavedSidebar
-            saved={saved}
-            busy={busy}
-            askDelete={setDeleting}
-            refresh={(item) =>
-              send(
-                `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
-              )
-            }
-          />
+          <div className="side-rail">
+            <LiveProgress steps={steps} busy={busy} error={error} />
+            <SavedSidebar
+              saved={saved}
+              busy={busy}
+              askDelete={setDeleting}
+              refresh={(item) =>
+                send(
+                  `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
+                )
+              }
+            />
+          </div>
         </div>
         {deleting && (
           <DeleteConfirmation

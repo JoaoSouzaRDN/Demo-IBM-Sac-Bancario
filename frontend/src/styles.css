@@ -120,6 +120,34 @@ input:focus-visible {
   min-height: 0;
   flex: 1;
 }
+.side-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-left: 1px solid #ffffff0d;
+}
+.live-panel {
+  flex: none;
+  max-height: 46%;
+  border-bottom: 1px solid #ffffff0d;
+  overflow-y: auto;
+}
+.live-panel .progress-empty {
+  padding: 20px 12px 0;
+}
+.live-panel .orbit {
+  margin-bottom: 12px;
+}
+.side-rail .progress-panel::before {
+  display: none;
+}
+.saved-panel {
+  flex: 1;
+  min-height: 0;
+}
+.progress-error {
+  color: #ff9292;
+}
 .conversation {
   display: flex;
   flex-direction: column;
@@ -156,6 +184,24 @@ input:focus-visible {
   color: var(--muted);
   font-size: 10px;
   margin: 0 4px 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.message-row.user .message-author {
+  flex-direction: row-reverse;
+}
+.avatar {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  flex: none;
+}
+.avatar.agent {
+  background: radial-gradient(circle at 35% 30%, #37ffb1, #17b37c 70%);
+}
+.avatar.user {
+  background: linear-gradient(135deg, #da22ff, #9733ee);
 }
 .msg {
   padding: 15px 18px;

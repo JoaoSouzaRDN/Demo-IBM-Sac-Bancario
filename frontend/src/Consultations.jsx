@@ -76,6 +76,75 @@ export function Processing({ steps, busy, error }) {
   );
 }
 
+export function LiveProgress({ steps, busy, error }) {
+  const hasSteps = steps.length > 0;
+  const done = steps.filter((step) => step.status === "done").length;
+  return (
+    <aside className="progress-panel live-panel" aria-label="Andamento da solicitação">
+      <div className="panel-heading">
+        <span className="eyebrow">ACOMPANHAMENTO</span>
+        <span className={`connection ${busy ? "working" : ""}`} />
+      </div>
+      <h2>Andamento</h2>
+      <p className="panel-subtitle">
+        {busy
+          ? "Acompanhe em tempo real o que o assistente está fazendo."
+          : hasSteps
+            ? "Última solicitação concluída."
+            : "As etapas aparecem aqui assim que você enviar uma mensagem."}
+      </p>
+      {!hasSteps && (
+        <div className="progress-empty">
+          <div className="orbit">
+            <span />
+            <span />
+            <span />
+          </div>
+          <strong>Aguardando sua mensagem</strong>
+          <p>Nenhuma solicitação em andamento no momento.</p>
+        </div>
+      )}
+      {hasSteps && (
+        <ol className="steps">
+          {steps.map((step) => (
+            <li key={step.id} className={`step ${step.status}`}>
+              <span className="step-light">
+                {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
+              </span>
+              <span>
+                <span className="step-label">{step.label}</span>
+                {step.status === "active" && <small>Em andamento…</small>}
+                {step.status === "done" && <small>Concluído</small>}
+                {step.status === "error" && <small>Falhou</small>}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      {hasSteps && (
+        <p className="progress-summary">
+          <span>{done} de {steps.length} etapas concluídas</span>
+          {error && <span className="progress-error">Interrompido</span>}
+        </p>
+      )}
+    </aside>
+  );
+}
+
+function Icon({ check = false }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d={check ? "m6 12 4 4 8-8" : "m5 12 14 0m-6-6 6 6-6 6"}
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function SavedSidebar({ saved, busy, refresh, askDelete }) {
   return (
     <aside className="progress-panel saved-panel" aria-label="Consultas salvas">
