@@ -27,13 +27,19 @@ try:
         page.locator('.processing-toggle').click()
         assert page.locator('.compact-steps').is_visible()
         page.locator('.save-case').click()
-        assert page.locator('.saved-card').count() == 1
+        # Saved sidebar is overlaid by the live progress panel until a new
+        # attendance starts — "Novo atendimento" brings it back.
+        assert page.locator('.saved-card').count() == 0
+        assert page.locator('.live-panel').count() == 1
         record['status'] = 'completed'
-        page.locator('.saved-open').click()
-        page.wait_for_function("document.querySelector('.status-badge').textContent === 'Concluído'")
-        assert 'pix-20260908-8841' in requests[-1]['message']
-        assert requests[-1]['threadId'] == 'test-thread'
         page.reload()
+        assert page.locator('.saved-card').count() == 1
+        page.locator('.saved-open').click()
+        page.wait_for_function("document.querySelector('.live-panel')?.textContent.includes('concluída')")
+        assert 'pix-20260908-8841' in requests[-1]['message']
+        assert requests[-1]['threadId'] is None
+        page.locator('#reset').click()
+        assert page.locator('.status-badge').text_content() == 'Concluído'
         assert page.locator('.saved-card').count() == 1
         page.locator('.delete-saved').click()
         assert page.locator('dialog').is_visible()

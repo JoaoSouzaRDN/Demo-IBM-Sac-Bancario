@@ -306,17 +306,20 @@ function App() {
             </form>
           </section>
           <div className="side-rail">
-            <LiveProgress steps={steps} busy={busy} error={error} />
-            <SavedSidebar
-              saved={saved}
-              busy={busy}
-              askDelete={setDeleting}
-              refresh={(item) =>
-                send(
-                  `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
-                )
-              }
-            />
+            {steps.length > 0 ? (
+              <LiveProgress steps={steps} busy={busy} error={error} />
+            ) : (
+              <SavedSidebar
+                saved={saved}
+                busy={busy}
+                askDelete={setDeleting}
+                refresh={(item) =>
+                  send(
+                    `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
+                  )
+                }
+              />
+            )}
           </div>
         </div>
         {deleting && (

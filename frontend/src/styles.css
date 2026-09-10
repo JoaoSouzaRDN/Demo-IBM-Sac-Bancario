@@ -127,9 +127,8 @@ input:focus-visible {
   border-left: 1px solid #ffffff0d;
 }
 .live-panel {
-  flex: none;
-  max-height: 46%;
-  border-bottom: 1px solid #ffffff0d;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 .live-panel .progress-empty {
@@ -349,6 +348,18 @@ input::placeholder {
 .connection.working {
   background: var(--orange);
   box-shadow: 0 0 0 4px #ff881c17;
+  animation: breathe-dot 1.7s ease-in-out infinite;
+}
+@keyframes breathe-dot {
+  0%,
+  100% {
+    transform: scale(0.85);
+    box-shadow: 0 0 0 3px #ff881c22;
+  }
+  50% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 6px #ff881c0d;
+  }
 }
 h2 {
   margin: 10px 0 7px;
