@@ -179,9 +179,10 @@ async function streamRun(body, res) {
   const progress = createProgress((event) => sendEvent(res, event));
   progress.consume({ id: "initial", event: "run.started" });
   let eventsAvailable = true;
-  for (let attempt = 0; attempt < 120; attempt += 1) {
+  const pollIntervalMs = 400;
+  for (let attempt = 0; attempt < 300; attempt += 1) {
     if (res.destroyed) return;
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
     if (eventsAvailable) {
       try {
         const eventsResponse = await fetch(

@@ -77,6 +77,7 @@ export function Processing({ steps, busy, error }) {
 }
 
 export function LiveProgress({ history = [], steps, busy, error }) {
+  const [expandedTurns, setExpandedTurns] = React.useState({});
   const hasSteps = steps.length > 0;
   const hasAny = hasSteps || history.length > 0;
   const done = steps.filter((step) => step.status === "done").length;
@@ -111,17 +112,48 @@ export function LiveProgress({ history = [], steps, busy, error }) {
       )}
       {hasAny && (
         <ol className="steps">
-          {history.map((turn) => (
-            <li key={turn.id} className="step done turn-group">
-              <span className="step-light">
-                <Icon check />
-              </span>
-              <span>
-                <span className="step-label">{turn.title}</span>
-                <small>{turn.steps.length} etapas concluídas</small>
-              </span>
-            </li>
-          ))}
+          {history.map((turn) => {
+            const isOpen = !!expandedTurns[turn.id];
+            return (
+              <li key={turn.id} className="step done turn-group">
+                <button
+                  className="turn-toggle"
+                  onClick={() =>
+                    setExpandedTurns((previous) => ({
+                      ...previous,
+                      [turn.id]: !previous[turn.id],
+                    }))
+                  }
+                  aria-expanded={isOpen}
+                >
+                  <span className="step-light">
+                    <Icon check />
+                  </span>
+                  <span>
+                    <span className="step-label">{turn.title}</span>
+                    <small>{turn.steps.length} etapas concluídas</small>
+                  </span>
+                  <span className="turn-chevron">{isOpen ? "⌃" : "⌄"}</span>
+                </button>
+                {isOpen && (
+                  <ol className="compact-steps turn-substeps">
+                    {turn.steps.map((step) => (
+                      <li key={step.id}>
+                        <span className={step.status}>
+                          {step.status === "done"
+                            ? "✓"
+                            : step.status === "error"
+                              ? "!"
+                              : "•"}
+                        </span>
+                        {step.label}
+                      </li>
+                    ))}
+                  </ol>
+                )}
+              </li>
+            );
+          })}
           {steps.map((step) => (
             <li key={step.id} className={`step ${step.status}`}>
               <span className="step-light">

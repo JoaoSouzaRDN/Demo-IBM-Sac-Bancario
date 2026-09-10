@@ -49,7 +49,10 @@ async def main():
             )
             assert "priority" in first_class
             await page.locator(".more-suggestions").click()
-            assert await page.locator("#suggestions button").count() == 10
+            # 5 saved + 5 default + the "mostrar menos" collapse button.
+            assert await page.locator("#suggestions button").count() == 11
+            await page.locator(".more-suggestions").click()
+            assert await page.locator("#suggestions button").count() == 6
 
             record = {
                 "id": "pix-1",
@@ -98,6 +101,12 @@ async def main():
                 ".turn-group .step-label", "el => el.textContent"
             )
             assert title == "Consulta Pix enviada"
+            # Collapsed by default; the toggle reveals the turn's own steps.
+            assert await page.locator(".turn-substeps").count() == 0
+            await page.locator(".turn-toggle").click()
+            assert await page.locator(".turn-substeps li").count() == 2
+            await page.locator(".turn-toggle").click()
+            assert await page.locator(".turn-substeps").count() == 0
             await browser.close()
             print(
                 "PASS: saved consultations prioritized in suggestions with overflow, "

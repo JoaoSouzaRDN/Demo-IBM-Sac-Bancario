@@ -115,6 +115,30 @@ function App() {
   const [history, setHistory] = useState([]);
   const [expandedSuggestions, setExpandedSuggestions] = useState(false);
   const lastTurn = useRef(null);
+  const stepQueue = useRef([]);
+  const stepTimer = useRef(null);
+  function clearStepQueue() {
+    stepQueue.current = [];
+    if (stepTimer.current) clearTimeout(stepTimer.current);
+    stepTimer.current = null;
+  }
+  function drainStepQueue() {
+    if (stepTimer.current) return;
+    const next = stepQueue.current.shift();
+    if (!next) return;
+    setSteps(next);
+    stepTimer.current = setTimeout(() => {
+      stepTimer.current = null;
+      drainStepQueue();
+    }, 260);
+  }
+  function queueSteps(nextSteps) {
+    // Snapshots can arrive in a burst (several tool calls resolved in the
+    // same polling window); reveal them one at a time so the panel visibly
+    // progresses instead of jumping straight to the final state.
+    stepQueue.current.push(nextSteps);
+    drainStepQueue();
+  }
   useEffect(() => {
     try {
       localStorage.setItem("rdn-consultations-v1", JSON.stringify(saved));
@@ -127,12 +151,19 @@ function App() {
   useEffect(() => {
     scroll.current.scrollTop = scroll.current.scrollHeight;
   }, [messages]);
-  useEffect(() => () => request.current?.abort(), []);
+  useEffect(
+    () => () => {
+      request.current?.abort();
+      if (stepTimer.current) clearTimeout(stepTimer.current);
+    },
+    [],
+  );
   function reset() {
     request.current?.abort();
     request.current = null;
     thread.current = null;
     lastTurn.current = null;
+    clearStepQueue();
     setMessages([{ role: "agent", text: greeting }]);
     setSteps([]);
     setHistory([]);
@@ -147,6 +178,7 @@ function App() {
     if (!text || request.current) return;
     const controller = new AbortController();
     request.current = controller;
+    clearStepQueue();
     if (steps.length > 0) {
       const finishedSteps = steps.map((step) =>
         step.status === "active" ? { ...step, status: "done" } : step,
@@ -180,7 +212,7 @@ function App() {
         if (event.thread_id) thread.current = event.thread_id;
         if (event.event === "progress") {
           turnSteps = event.steps;
-          setSteps(event.steps);
+          queueSteps(event.steps);
         }
         if (event.reply) answer = event.reply;
         if (event.cases)
@@ -221,6 +253,7 @@ function App() {
     } catch (failure) {
       if (controller.signal.aborted) return;
       setError(failure.message);
+      clearStepQueue();
       setSteps((previous) =>
         previous.map((step) =>
           step.status === "active" ? { ...step, status: "error" } : step,
@@ -347,18 +380,32 @@ function App() {
                                 <Icon />
                               </button>
                             ))}
-                            {hidden > 0 && (
+                            {(hidden > 0 || expandedSuggestions) && (
                               <button
                                 className="more-suggestions"
-                                onClick={() => setExpandedSuggestions(true)}
-                                aria-label="Ver mais sugestões"
-                                title="Ver mais sugestões"
+                                onClick={() =>
+                                  setExpandedSuggestions((value) => !value)
+                                }
+                                aria-label={
+                                  expandedSuggestions
+                                    ? "Mostrar menos sugestões"
+                                    : "Ver mais sugestões"
+                                }
+                                title={
+                                  expandedSuggestions
+                                    ? "Mostrar menos sugestões"
+                                    : "Ver mais sugestões"
+                                }
                               >
-                                <span className="dots">
-                                  <span />
-                                  <span />
-                                  <span />
-                                </span>
+                                {expandedSuggestions ? (
+                                  <span className="chevron-up">⌃</span>
+                                ) : (
+                                  <span className="dots">
+                                    <span />
+                                    <span />
+                                    <span />
+                                  </span>
+                                )}
                               </button>
                             )}
                           </div>
@@ -386,27 +433,6 @@ function App() {
                 <Processing steps={steps} busy={busy} error={error} />
               )}
             </div>
-            {!busy && messages.length > 1 && saved.length > 0 && (
-              <div className="quick-chips">
-                <span className="quick-chips-label">Continuar acompanhando:</span>
-                <div>
-                  {saved
-                    .slice()
-                    .sort((a, b) => new Date(b.checkedAt) - new Date(a.checkedAt))
-                    .slice(0, 3)
-                    .map((item) => (
-                      <button
-                        key={`${item.category}:${item.id}`}
-                        onClick={() => refreshItem(item)}
-                        title={`Consultar novamente: ${item.title}`}
-                      >
-                        {item.title}
-                        <Icon />
-                      </button>
-                    ))}
-                </div>
-              </div>
-            )}
             <form
               id="form"
               onSubmit={(event) => {

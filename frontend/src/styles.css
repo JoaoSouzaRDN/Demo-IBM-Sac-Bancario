@@ -502,6 +502,33 @@ h2 {
 .step.done small {
   color: #37ffb1;
 }
+.step.turn-group {
+  flex-direction: column;
+}
+.turn-toggle {
+  all: unset;
+  box-sizing: border-box;
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  width: 100%;
+  cursor: pointer;
+}
+.turn-toggle:focus-visible {
+  outline: 2px solid #d6b1ff;
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+.turn-chevron {
+  margin-left: auto;
+  align-self: center;
+  color: #8d919d;
+  font-size: 12px;
+  flex: none;
+}
+.turn-substeps {
+  margin: 10px 0 0 35px;
+}
 .progress-summary {
   display: flex;
   justify-content: space-between;
@@ -745,47 +772,6 @@ h2 {
     transform: translateY(-4px);
     opacity: 1;
   }
-}
-.quick-chips {
-  padding: 0 30px 4px;
-}
-.quick-chips-label {
-  color: var(--muted);
-  font-size: 10px;
-  display: block;
-  margin-bottom: 8px;
-}
-.quick-chips > div {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.quick-chips button {
-  padding: 8px 11px;
-  background: #2a2c31;
-  color: #d3b5ed;
-  border: 0;
-  border-radius: 9px;
-  font-size: 11px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: 220px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  transition:
-    background 0.2s,
-    transform 0.2s;
-}
-.quick-chips button:hover {
-  background: #393b42;
-  transform: translateY(-2px);
-}
-.quick-chips svg {
-  width: 12px;
-  color: #a0a0ac;
-  flex: none;
 }
 .saved-card.just-updated {
   animation: card-flash 2.2s ease;
