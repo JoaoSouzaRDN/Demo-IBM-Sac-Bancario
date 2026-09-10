@@ -76,9 +76,14 @@ export function Processing({ steps, busy, error }) {
   );
 }
 
-export function LiveProgress({ steps, busy, error }) {
+export function LiveProgress({ history = [], steps, busy, error }) {
   const hasSteps = steps.length > 0;
+  const hasAny = hasSteps || history.length > 0;
   const done = steps.filter((step) => step.status === "done").length;
+  const totalDone =
+    history.reduce((sum, turn) => sum + turn.steps.length, 0) + done;
+  const totalSteps =
+    history.reduce((sum, turn) => sum + turn.steps.length, 0) + steps.length;
   return (
     <aside className="progress-panel live-panel panel-fade" aria-label="Andamento da solicitação">
       <div className="panel-heading">
@@ -89,11 +94,11 @@ export function LiveProgress({ steps, busy, error }) {
       <p className="panel-subtitle">
         {busy
           ? "Acompanhe em tempo real o que o assistente está fazendo."
-          : hasSteps
-            ? "Última solicitação concluída."
+          : hasAny
+            ? "Histórico deste atendimento."
             : "As etapas aparecem aqui assim que você enviar uma mensagem."}
       </p>
-      {!hasSteps && (
+      {!hasAny && (
         <div className="progress-empty">
           <div className="orbit">
             <span />
@@ -104,8 +109,19 @@ export function LiveProgress({ steps, busy, error }) {
           <p>Nenhuma solicitação em andamento no momento.</p>
         </div>
       )}
-      {hasSteps && (
+      {hasAny && (
         <ol className="steps">
+          {history.map((turn) => (
+            <li key={turn.id} className="step done turn-group">
+              <span className="step-light">
+                <Icon check />
+              </span>
+              <span>
+                <span className="step-label">{turn.title}</span>
+                <small>{turn.steps.length} etapas concluídas</small>
+              </span>
+            </li>
+          ))}
           {steps.map((step) => (
             <li key={step.id} className={`step ${step.status}`}>
               <span className="step-light">
@@ -121,9 +137,9 @@ export function LiveProgress({ steps, busy, error }) {
           ))}
         </ol>
       )}
-      {hasSteps && (
+      {hasAny && (
         <p className="progress-summary">
-          <span>{done} de {steps.length} etapas concluídas</span>
+          <span>{totalDone} de {totalSteps} etapas concluídas</span>
           {error && <span className="progress-error">Interrompido</span>}
         </p>
       )}

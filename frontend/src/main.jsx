@@ -19,6 +19,20 @@ const suggestions = [
   "Minha parcela está atrasada",
   "Quero atualizar meus dados",
 ];
+const categoryLabel = {
+  pix: "Pix",
+  cartao: "Cartão",
+  compra: "Compra",
+  parcela: "Parcela",
+  perfil: "Cadastro",
+};
+function turnTitle(text, cases) {
+  const category = cases?.[0]?.category;
+  if (category) return `Consulta ${categoryLabel[category] || category} enviada`;
+  const trimmed = (text || "").trim();
+  if (!trimmed) return "Atendimento";
+  return trimmed.length > 46 ? `${trimmed.slice(0, 46)}…` : trimmed;
+}
 
 function Icon({ check = false }) {
   return (
@@ -98,6 +112,9 @@ function App() {
   });
   const [deleting, setDeleting] = useState(null);
   const [flashKey, setFlashKey] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [expandedSuggestions, setExpandedSuggestions] = useState(false);
+  const lastTurn = useRef(null);
   useEffect(() => {
     try {
       localStorage.setItem("rdn-consultations-v1", JSON.stringify(saved));
@@ -115,8 +132,11 @@ function App() {
     request.current?.abort();
     request.current = null;
     thread.current = null;
+    lastTurn.current = null;
     setMessages([{ role: "agent", text: greeting }]);
     setSteps([]);
+    setHistory([]);
+    setExpandedSuggestions(false);
     setBusy(false);
     setError("");
     setInput("");
@@ -127,12 +147,23 @@ function App() {
     if (!text || request.current) return;
     const controller = new AbortController();
     request.current = controller;
+    if (steps.length > 0) {
+      const finishedSteps = steps.map((step) =>
+        step.status === "active" ? { ...step, status: "done" } : step,
+      );
+      const title = turnTitle(lastTurn.current?.text, lastTurn.current?.cases);
+      setHistory((previous) => [
+        ...previous,
+        { id: `turn-${previous.length}-${Date.now()}`, title, steps: finishedSteps },
+      ]);
+    }
+    lastTurn.current = { text, cases: [] };
     setMessages((previous) => [...previous, { role: "user", text }]);
     setInput("");
     setBusy(true);
     setError("");
     setSteps([
-      { id: "connect", label: "Enviando sua solicitação", status: "active" },
+      { id: "understand", label: "Entendendo sua solicitação", status: "active" },
     ]);
     let answer = "";
     let turnSteps = [];
@@ -165,6 +196,7 @@ function App() {
         ...previous,
         { role: "agent", text: answer, steps: turnSteps, cases },
       ]);
+      lastTurn.current = { text, cases };
       const changed = cases.find((updated) => {
         const item = saved.find(
           (stored) =>
@@ -269,21 +301,70 @@ function App() {
                       );
                     })}
                   </div>
-                  {index === 0 && messages.length === 1 && (
-                    <div id="suggestions" className="suggestions">
-                      <span className="suggestion-label">
-                        Como podemos ajudar hoje?
-                      </span>
-                      <div>
-                        {suggestions.map((text) => (
-                          <button key={text} onClick={() => send(text)}>
-                            {text}
-                            <Icon />
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {index === 0 &&
+                    messages.length === 1 &&
+                    (() => {
+                      const savedEntries = saved
+                        .slice()
+                        .sort(
+                          (a, b) => new Date(b.checkedAt) - new Date(a.checkedAt),
+                        )
+                        .map((item) => ({
+                          key: `${item.category}:${item.id}`,
+                          label: item.title,
+                          priority: true,
+                          onClick: () => refreshItem(item),
+                        }));
+                      const defaultEntries = suggestions.map((text) => ({
+                        key: text,
+                        label: text,
+                        priority: false,
+                        onClick: () => send(text),
+                      }));
+                      const combined = [...savedEntries, ...defaultEntries];
+                      const visible = expandedSuggestions
+                        ? combined
+                        : combined.slice(0, 5);
+                      const hidden = combined.length - visible.length;
+                      return (
+                        <div id="suggestions" className="suggestions">
+                          <span className="suggestion-label">
+                            Como podemos ajudar hoje?
+                          </span>
+                          <div>
+                            {visible.map((entry) => (
+                              <button
+                                key={entry.key}
+                                className={entry.priority ? "priority" : undefined}
+                                onClick={entry.onClick}
+                                title={
+                                  entry.priority
+                                    ? `Consultar novamente: ${entry.label}`
+                                    : undefined
+                                }
+                              >
+                                {entry.label}
+                                <Icon />
+                              </button>
+                            ))}
+                            {hidden > 0 && (
+                              <button
+                                className="more-suggestions"
+                                onClick={() => setExpandedSuggestions(true)}
+                                aria-label="Ver mais sugestões"
+                                title="Ver mais sugestões"
+                              >
+                                <span className="dots">
+                                  <span />
+                                  <span />
+                                  <span />
+                                </span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
                 </React.Fragment>
               ))}
               {busy && !error && (
@@ -305,7 +386,7 @@ function App() {
                 <Processing steps={steps} busy={busy} error={error} />
               )}
             </div>
-            {!busy && saved.length > 0 && (
+            {!busy && messages.length > 1 && saved.length > 0 && (
               <div className="quick-chips">
                 <span className="quick-chips-label">Continuar acompanhando:</span>
                 <div>
@@ -361,7 +442,13 @@ function App() {
           </section>
           <div className="side-rail">
             {steps.length > 0 ? (
-              <LiveProgress key="live" steps={steps} busy={busy} error={error} />
+              <LiveProgress
+                key="live"
+                history={history}
+                steps={steps}
+                busy={busy}
+                error={error}
+              />
             ) : (
               <SavedSidebar
                 key="saved"

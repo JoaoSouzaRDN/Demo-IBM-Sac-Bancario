@@ -273,6 +273,45 @@ input:focus-visible {
   background: #393b42;
   transform: translateY(-2px);
 }
+.suggestions button.priority {
+  background: #ad75d11f;
+  color: #e9d9f8;
+  box-shadow:
+    0 4px 9px #0002,
+    inset 0 0 0 1px #ad75d144;
+}
+.suggestions button.priority:hover {
+  background: #ad75d133;
+}
+.suggestions button.priority svg {
+  color: #d3b5ed;
+}
+.more-suggestions {
+  padding: 11px 16px;
+  background: #2a2c31;
+  border: 0;
+  border-radius: 10px;
+  box-shadow:
+    0 4px 9px #0002,
+    inset 0 1px 0 #ffffff0a;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.more-suggestions:hover {
+  background: #393b42;
+  transform: translateY(-2px);
+}
+.more-suggestions .dots {
+  display: flex;
+  gap: 4px;
+}
+.more-suggestions .dots span {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #a0a0ac;
+}
 svg {
   width: 17px;
   height: 17px;
