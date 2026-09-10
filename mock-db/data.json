@@ -1,8 +1,60 @@
 {
-  "customers": [{"id":"cli-001","name":"Mariana Oliveira","cpf":"***.***.***-42","account":"000123-4"}],
-  "pix": [{"id":"pix-20260908-8841","customerId":"cli-001","amount":850,"date":"2026-09-08T21:42:00-03:00","status":"pending","recipient":"Rafael Oliveira","protocol":"MED-20260908-019"}],
-  "cards": [{"id":"card-001","customerId":"cli-001","last4":"4821","status":"active"}],
-  "purchases": [{"id":"purchase-001","customerId":"cli-001","amount":239.9,"merchant":"LOJA EXEMPLO","date":"2026-09-07","status":"contested"}],
-  "loans": [{"id":"loan-001","customerId":"cli-001","installment":4,"dueDate":"2026-09-05","amount":612.4,"status":"overdue"}],
-  "profiles": [{"customerId":"cli-001","email":"mariana.demo@example.com","phone":"(11) 99999-0000","status":"needs_review"}]
+  "customers": [
+    {
+      "id": "cli-001",
+      "name": "Mariana Oliveira",
+      "cpf": "***.***.***-42",
+      "account": "000123-4"
+    }
+  ],
+  "pix": [
+    {
+      "id": "pix-20260908-8841",
+      "customerId": "cli-001",
+      "amount": 850,
+      "date": "2026-09-08T21:42:00-03:00",
+      "status": "pending",
+      "recipient": "Rafael Oliveira",
+      "protocol": "MED-20260908-019",
+      "reason": "Aguardando confirmação de liquidação do SPI; o débito foi registrado, mas a confirmação de crédito ainda não retornou.",
+      "coreDebitConfirmed": true,
+      "spiStatus": "awaiting_confirmation"
+    }
+  ],
+  "cards": [
+    {
+      "id": "card-001",
+      "customerId": "cli-001",
+      "last4": "4821",
+      "status": "active"
+    }
+  ],
+  "purchases": [
+    {
+      "id": "purchase-001",
+      "customerId": "cli-001",
+      "amount": 239.9,
+      "merchant": "LOJA EXEMPLO",
+      "date": "2026-09-07",
+      "status": "contested"
+    }
+  ],
+  "loans": [
+    {
+      "id": "loan-001",
+      "customerId": "cli-001",
+      "installment": 4,
+      "dueDate": "2026-09-05",
+      "amount": 612.4,
+      "status": "overdue"
+    }
+  ],
+  "profiles": [
+    {
+      "customerId": "cli-001",
+      "email": "mariana.demo@example.com",
+      "phone": "(11) 99999-0000",
+      "status": "needs_review"
+    }
+  ]
 }

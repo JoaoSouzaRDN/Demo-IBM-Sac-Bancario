@@ -1,6 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./styles.css";
+import {
+  Processing,
+  SavedSidebar,
+  DeleteConfirmation,
+  validCases,
+  statusLabel,
+} from "./Consultations";
 
 const greeting =
   "Olá! Sou o assistente do RDN Bank. Vou consultar os dados e orientar você com segurança. Como posso ajudar?";
@@ -23,71 +30,6 @@ function Icon({ check = false }) {
         strokeLinejoin="round"
       />
     </svg>
-  );
-}
-
-function ProgressPanel({ steps, busy, error }) {
-  const completed = steps.filter((step) => step.status === "done").length;
-  return (
-    <aside className="progress-panel" aria-label="Andamento do atendimento">
-      <div className="panel-heading">
-        <span className="eyebrow">EM TEMPO REAL</span>
-        <span className={`connection ${busy ? "working" : ""}`} />
-      </div>
-      <h2>Andamento</h2>
-      <p className="panel-subtitle">
-        {error
-          ? "Não foi possível concluir."
-          : busy
-            ? "Seu pedido está sendo processado."
-            : steps.length
-              ? "Resposta pronta. Podemos continuar."
-              : "Cada etapa do seu pedido, aqui."}
-      </p>
-      {steps.length ? (
-        <ol className="steps" aria-live="polite">
-          {steps.map((step) => (
-            <li key={step.id} className={`step ${step.status}`}>
-              <span className="step-light">
-                {step.status === "done" && <Icon check />}
-                {step.status === "error" && "!"}
-              </span>
-              <div>
-                <span className="step-label">{step.label}</span>
-                <small>
-                  {step.status === "done"
-                    ? "Concluído"
-                    : step.status === "error"
-                      ? "Interrompido"
-                      : step.status === "active"
-                        ? "Em andamento"
-                        : "Aguardando"}
-                </small>
-              </div>
-            </li>
-          ))}
-        </ol>
-      ) : (
-        <div className="progress-empty">
-          <div className="orbit">
-            <span />
-            <span />
-            <span />
-          </div>
-          <strong>Vamos começar?</strong>
-          <p>Envie uma mensagem para acompanhar o atendimento.</p>
-        </div>
-      )}
-      {steps.length > 0 && (
-        <div className="progress-summary">
-          <span>
-            {completed}{" "}
-            {completed === 1 ? "etapa concluída" : "etapas concluídas"}
-          </span>
-          <span>{busy ? "Processando" : error ? "Pausado" : "Finalizado"}</span>
-        </div>
-      )}
-    </aside>
   );
 }
 
@@ -136,6 +78,29 @@ function App() {
   const [steps, setSteps] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [saved, setSaved] = useState(() => {
+    try {
+      const stored = JSON.parse(
+        localStorage.getItem("rdn-consultations-v1") || "[]",
+      );
+      return validCases(stored).map((item) => ({
+        ...item,
+        checkedAt:
+          stored.find(
+            (source) =>
+              source.id === item.id && source.category === item.category,
+          )?.checkedAt || new Date().toISOString(),
+      }));
+    } catch {
+      return [];
+    }
+  });
+  const [deleting, setDeleting] = useState(null);
+  useEffect(() => {
+    try {
+      localStorage.setItem("rdn-consultations-v1", JSON.stringify(saved));
+    } catch {}
+  }, [saved]);
   const request = useRef(null);
   const thread = useRef(null);
   const scroll = useRef(null);
@@ -168,6 +133,8 @@ function App() {
       { id: "connect", label: "Enviando sua solicitação", status: "active" },
     ]);
     let answer = "";
+    let turnSteps = [];
+    let cases = [];
     try {
       const response = await fetch("/api/chat/stream", {
         method: "POST",
@@ -178,13 +145,33 @@ function App() {
       await readEvents(response, (event) => {
         if (controller.signal.aborted) return;
         if (event.thread_id) thread.current = event.thread_id;
-        if (event.event === "progress") setSteps(event.steps);
+        if (event.event === "progress") {
+          turnSteps = event.steps;
+          setSteps(event.steps);
+        }
         if (event.reply) answer = event.reply;
+        if (event.cases)
+          cases = validCases(event.cases).map((item) => ({
+            ...item,
+            checkedAt: new Date().toISOString(),
+          }));
       });
       if (!answer.trim())
         throw new Error("O agente não retornou uma resposta. Tente novamente.");
       if (controller.signal.aborted) return;
-      setMessages((previous) => [...previous, { role: "agent", text: answer }]);
+      setMessages((previous) => [
+        ...previous,
+        { role: "agent", text: answer, steps: turnSteps, cases },
+      ]);
+      setSaved((previous) =>
+        previous.map(
+          (item) =>
+            cases.find(
+              (updated) =>
+                updated.id === item.id && updated.category === item.category,
+            ) || item,
+        ),
+      );
     } catch (failure) {
       if (controller.signal.aborted) return;
       setError(failure.message);
@@ -226,11 +213,41 @@ function App() {
             >
               {messages.map((message, index) => (
                 <React.Fragment key={index}>
+                  {message.steps && (
+                    <Processing steps={message.steps} busy={false} />
+                  )}
                   <div className={`message-row ${message.role}`}>
                     <span className="message-author">
                       {message.role === "agent" ? "RDN Assistente" : "Você"}
                     </span>
                     <div className={`msg ${message.role}`}>{message.text}</div>
+                    {message.cases?.map((item) => {
+                      const exists = saved.some(
+                        (stored) =>
+                          stored.id === item.id &&
+                          stored.category === item.category,
+                      );
+                      return (
+                        <button
+                          className="save-case"
+                          key={`${item.category}:${item.id}`}
+                          disabled={exists}
+                          onClick={() =>
+                            setSaved((previous) => [
+                              ...previous.filter(
+                                (stored) =>
+                                  stored.id !== item.id ||
+                                  stored.category !== item.category,
+                              ),
+                              item,
+                            ])
+                          }
+                        >
+                          {exists ? "✓ Consulta salva" : "＋ Salvar consulta"} ·{" "}
+                          {statusLabel(item.status)}
+                        </button>
+                      );
+                    })}
                   </div>
                   {index === 0 && messages.length === 1 && (
                     <div id="suggestions" className="suggestions">
@@ -249,6 +266,9 @@ function App() {
                   )}
                 </React.Fragment>
               ))}
+              {(busy || error) && (
+                <Processing steps={steps} busy={busy} error={error} />
+              )}
             </div>
             <form
               id="form"
@@ -283,8 +303,33 @@ function App() {
               )}
             </form>
           </section>
-          <ProgressPanel steps={steps} busy={busy} error={error} />
+          <SavedSidebar
+            saved={saved}
+            busy={busy}
+            askDelete={setDeleting}
+            refresh={(item) =>
+              send(
+                `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
+              )
+            }
+          />
         </div>
+        {deleting && (
+          <DeleteConfirmation
+            item={deleting}
+            cancel={() => setDeleting(null)}
+            confirm={() => {
+              setSaved((previous) =>
+                previous.filter(
+                  (item) =>
+                    item.id !== deleting.id ||
+                    item.category !== deleting.category,
+                ),
+              );
+              setDeleting(null);
+            }}
+          />
+        )}
       </section>
     </main>
   );

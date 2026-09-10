@@ -3,6 +3,7 @@ const http = require("http"),
   path = require("path");
 const root = path.join(__dirname, "..", "frontend");
 const { createProgress } = require("./progress");
+const { lookupRecords } = require("./records");
 const mockDb = JSON.parse(
   fs.readFileSync(path.join(__dirname, "..", "mock-db", "data.json"), "utf8"),
 );
@@ -132,7 +133,11 @@ async function finalRunMessage(url, headers, threadId, runId) {
           text.replace(/^```(?:json)?\s*|\s*```$/g, ""),
         );
         if (typeof structured.reply === "string" && structured.reply.trim())
-          return { reply: structured.reply, execution: structured.execution };
+          return {
+            reply: structured.reply,
+            execution: structured.execution,
+            cases: Array.isArray(structured.cases) ? structured.cases : [],
+          };
       } catch {}
       return { reply: text };
     }
@@ -292,6 +297,16 @@ async function streamChat(body, res) {
 }
 http
   .createServer((req, res) => {
+    if (req.method === "GET" && req.url.startsWith("/api/demo/records?")) {
+      const result = lookupRecords(
+        new URL(req.url, "http://localhost").searchParams,
+      );
+      res.writeHead(result.error ? 400 : 200, {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      });
+      return res.end(JSON.stringify(result));
+    }
     if (req.url === "/api/chat/stream" && req.method === "POST") {
       let b = "";
       req.on("data", (c) => (b += c));
