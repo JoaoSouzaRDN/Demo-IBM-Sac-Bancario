@@ -9,6 +9,19 @@ const labels = {
   completed: "Concluído",
 };
 export const statusLabel = (status) => labels[status] || status;
+// Finished steps float to the top as they get ticked off; whatever is still
+// active (or pending) sinks to the bottom, so the list visibly "empties out"
+// upward instead of just flipping icons in place.
+const stepRank = { done: 0, error: 0, active: 1, pending: 2 };
+function orderedSteps(steps) {
+  return steps
+    .map((step, index) => ({ step, index }))
+    .sort((a, b) => {
+      const rank = (stepRank[a.step.status] ?? 2) - (stepRank[b.step.status] ?? 2);
+      return rank !== 0 ? rank : a.index - b.index;
+    })
+    .map(({ step }) => step);
+}
 export function validCases(cases) {
   return Array.isArray(cases)
     ? cases
@@ -58,7 +71,7 @@ export function Processing({ steps, busy, error }) {
       </button>
       {expanded && (
         <ol className="compact-steps">
-          {steps.map((step) => (
+          {orderedSteps(steps).map((step) => (
             <li key={step.id}>
               <span className={step.status}>
                 {step.status === "done"
@@ -99,6 +112,7 @@ export function LiveProgress({ history = [], steps, busy, error }) {
             ? "Histórico deste atendimento."
             : "As etapas aparecem aqui assim que você enviar uma mensagem."}
       </p>
+      <div className="live-scroll">
       {!hasAny && (
         <div className="progress-empty">
           <div className="orbit">
@@ -137,7 +151,7 @@ export function LiveProgress({ history = [], steps, busy, error }) {
                 </button>
                 {isOpen && (
                   <ol className="compact-steps turn-substeps">
-                    {turn.steps.map((step) => (
+                    {orderedSteps(turn.steps).map((step) => (
                       <li key={step.id}>
                         <span className={step.status}>
                           {step.status === "done"
@@ -154,7 +168,7 @@ export function LiveProgress({ history = [], steps, busy, error }) {
               </li>
             );
           })}
-          {steps.map((step) => (
+          {orderedSteps(steps).map((step) => (
             <li key={step.id} className={`step ${step.status}`}>
               <span className="step-light">
                 {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
@@ -173,6 +187,7 @@ export function LiveProgress({ history = [], steps, busy, error }) {
           ))}
         </ol>
       )}
+      </div>
       {hasAny && (
         <p className="progress-summary">
           <span>{totalDone} de {totalSteps} etapas concluídas</span>

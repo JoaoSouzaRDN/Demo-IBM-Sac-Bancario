@@ -129,7 +129,19 @@ input:focus-visible {
 .live-panel {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.live-scroll {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #666972 transparent;
+}
+.live-panel .progress-summary {
+  flex: none;
 }
 .live-panel .progress-empty {
   padding: 20px 12px 0;
@@ -501,6 +513,26 @@ h2 {
 }
 .step.done small {
   color: #37ffb1;
+}
+.step.done,
+.compact-steps li:has(.done) {
+  animation: step-settle 0.35s ease;
+}
+@keyframes step-settle {
+  from {
+    transform: translateY(5px);
+    opacity: 0.5;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .step.done,
+  .compact-steps li:has(.done) {
+    animation: none;
+  }
 }
 .step.turn-group {
   flex-direction: column;
