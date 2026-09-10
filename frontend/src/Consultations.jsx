@@ -47,7 +47,7 @@ export function Processing({ steps, busy, error }) {
         >
           {!busy && !error && "✓"}
         </span>
-        <span>
+        <span className={busy ? "shimmer-text" : undefined}>
           {busy
             ? active?.label || "Processando solicitação"
             : error
@@ -160,7 +160,11 @@ export function LiveProgress({ history = [], steps, busy, error }) {
                 {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
               </span>
               <span>
-                <span className="step-label">{step.label}</span>
+                <span
+                  className={`step-label ${step.status === "active" ? "shimmer-text" : ""}`}
+                >
+                  {step.label}
+                </span>
                 {step.status === "active" && <small>Em andamento…</small>}
                 {step.status === "done" && <small>Concluído</small>}
                 {step.status === "error" && <small>Falhou</small>}

@@ -710,7 +710,48 @@ h2 {
 }
 .mini-light.active {
   background: #ff8a19;
-  animation: breathe 1.7s ease-in-out infinite;
+  animation: breathe-mini 1.7s ease-in-out infinite;
+}
+@keyframes breathe-mini {
+  0%,
+  100% {
+    transform: scale(0.9);
+    box-shadow: 0 0 0 2px #ff881c22;
+  }
+  50% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px #ff881c30;
+  }
+}
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #8d919d 0%,
+    #8d919d 35%,
+    #fff 50%,
+    #8d919d 65%,
+    #8d919d 100%
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer-sweep 2s linear infinite;
+}
+@keyframes shimmer-sweep {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -50% 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text {
+    animation: none;
+    color: #8d919d;
+    background: none;
+  }
 }
 .mini-light.done {
   color: #37ffb1;
@@ -740,38 +781,6 @@ h2 {
 }
 .compact-steps .error {
   color: #ff7777;
-}
-.typing-bubble {
-  padding: 15px 18px;
-}
-.typing-dots {
-  display: flex;
-  gap: 5px;
-}
-.typing-dots span {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: #9497a3;
-  animation: typing-bounce 1.2s infinite ease-in-out;
-}
-.typing-dots span:nth-child(2) {
-  animation-delay: 0.15s;
-}
-.typing-dots span:nth-child(3) {
-  animation-delay: 0.3s;
-}
-@keyframes typing-bounce {
-  0%,
-  60%,
-  100% {
-    transform: translateY(0);
-    opacity: 0.5;
-  }
-  30% {
-    transform: translateY(-4px);
-    opacity: 1;
-  }
 }
 .saved-card.just-updated {
   animation: card-flash 2.2s ease;

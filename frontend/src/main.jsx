@@ -414,21 +414,6 @@ function App() {
                     })()}
                 </React.Fragment>
               ))}
-              {busy && !error && (
-                <div className="message-row agent">
-                  <span className="message-author">
-                    <span className="avatar agent" />
-                    RDN Assistente
-                  </span>
-                  <div className="msg agent typing-bubble">
-                    <span className="typing-dots">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                  </div>
-                </div>
-              )}
               {(busy || error) && (
                 <Processing steps={steps} busy={busy} error={error} />
               )}
