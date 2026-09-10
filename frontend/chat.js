@@ -16,7 +16,7 @@ function renderAgentExecution(execution) {
   const steps = Array.isArray(execution) ? execution : execution?.steps;
   if (!Array.isArray(steps) || !steps.length) return false;
   const panel = document.querySelector(".checklist");
-  panel.innerHTML = `<b>HistÃ³rico do atendimento</b><div id="checklistSteps">${steps.map((step, i) => {
+  panel.innerHTML = `<b>Histórico do atendimento</b><div id="checklistSteps">${steps.map((step, i) => {
     const item = typeof step === "string" ? { label: step, status: "done" } : step;
     const status = item.status || (item.completed ? "done" : "pending");
     return `<div class="check ${status}"><i></i><span>${item.label || item.name || "Etapa do atendimento"}</span>${item.time || item.detail ? `<small>${item.time || item.detail}</small>` : ""}</div>`;
@@ -24,12 +24,17 @@ function renderAgentExecution(execution) {
   return true;
 }
 function add(t, w = "agent") {
-  $("#messages").insertAdjacentHTML(
-    "beforeend",
-    `<div class="msg ${w}">${t}</div>`,
-  );
+  const message = document.createElement("div");
+  message.className = `msg ${w}`;
+  message.textContent = t;
+  $("#messages").appendChild(message);
+  return message;
 }
+let activeRequest = null;
 function start() {
+  activeRequest?.abort();
+  activeRequest = null;
+  window.__wxoThreadId = undefined;
   const messages = $("#messages");
   const suggestions = $("#suggestions");
   messages.innerHTML = "";
@@ -51,22 +56,26 @@ function start() {
   );
 }
 async function send(t) {
-  if (!t) return;
+  if (!t || activeRequest) return;
+  const controller = new AbortController();
+  activeRequest = controller;
+  $("#suggestions").style.display = "none";
   renderChecklist(1, 0);
   add(t, "user");
   $("#input").value = "";
-  add("Consultando os sistemas do banco…");
+  const placeholder = add("Consultando os sistemas do banco…");
   try {
     renderChecklist(2, 1);
     const stream = await fetch("/api/chat/stream", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: t, threadId: window.__wxoThreadId }),
+      signal: controller.signal,
     });
+    if (!stream.ok) throw new Error(`Falha de conexão (HTTP ${stream.status}).`);
     const reader = stream.body.getReader();
     const decoder = new TextDecoder();
-    let buffer = "", reply = "";
-    const placeholder = document.querySelectorAll(".agent").at(-1);
+    let buffer = "", reply = "", hasExecution = false;
     while (true) {
       const { value, done } = await reader.read();
       if (done) break;
@@ -83,30 +92,24 @@ async function send(t) {
         if (data.error) throw new Error(data.error);
         if (data.thread_id) window.__wxoThreadId = data.thread_id;
         const payload = data.data && typeof data.data === "object" ? { ...data, ...data.data } : data;
-        if (renderAgentExecution(payload.execution || payload.steps)) continue;
+        hasExecution = renderAgentExecution(payload.execution || payload.steps) || hasExecution;
         const eventName = payload.event || payload.type;
-        if (eventName?.includes("step")) renderChecklist(eventName.includes("completed") ? 3 : 2, eventName.includes("completed") ? 2 : 1);
+        if (eventName?.includes("step") && !hasExecution) renderChecklist(2, 1);
         const delta = payload.choices?.[0]?.delta?.content || payload.delta?.text || payload.content || payload.reply || "";
         if (typeof delta === "string") reply += delta;
       }
     }
+    if (!reply.trim()) throw new Error("O agente não retornou uma resposta. Tente novamente.");
     placeholder?.remove();
-    add(reply || "Atendimento concluÃ­do.");
-    renderChecklist(4, 3);
-    return;
-    const r = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: t }),
-    });
-    const d = await r.json();
-    renderAgentExecution(d.execution || d.steps) || renderChecklist(4, 3);
-    document.querySelectorAll(".agent").at(-1).remove();
-    add(d.reply || d.output || "Atendimento concluído.");
+    add(reply);
+    if (!hasExecution) renderChecklist(-1, 4);
   } catch (e) {
-    renderChecklist(4, 1);
-    document.querySelectorAll(".agent").at(-1).remove();
-    add("Não foi possível conectar ao agente.");
+    if (controller.signal.aborted) return;
+    renderChecklist(-1, -1);
+    placeholder.remove();
+    add(e.message || "Não foi possível conectar ao agente.");
+  } finally {
+    if (activeRequest === controller) activeRequest = null;
   }
 }
 $("#form").onsubmit = (e) => {

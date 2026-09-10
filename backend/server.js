@@ -66,7 +66,7 @@ function extractRunText(value) {
     if (typeof value.output === "string") return value.output;
     if (typeof value.text === "string") return value.text;
     if (typeof value.content === "string") return value.content;
-    for (const key of ["messages", "message", "response", "result", "data", "output"]) {
+    for (const key of ["content", "messages", "message", "response", "result", "data", "output"]) {
       const text = extractRunText(value[key]);
       if (text) return text;
     }
@@ -75,6 +75,25 @@ function extractRunText(value) {
 }
 function sendEvent(res, payload) {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+async function finalRunMessage(url, headers, threadId, runId) {
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const response = await fetch(`${url.replace(/\/runs$/, "")}/threads/${encodeURIComponent(threadId)}/messages`, { headers });
+    if (!response.ok) throw new Error(`Messages HTTP ${response.status}`);
+    const result = await response.json();
+    const messages = Array.isArray(result) ? result : result.data || [];
+    const message = messages.find((item) => item.role === "assistant" && item.context?.wxo_run_id === runId);
+    const text = extractRunText(message?.content);
+    if (text) {
+      try {
+        const structured = JSON.parse(text.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+        if (typeof structured.reply === "string" && structured.reply.trim()) return { reply: structured.reply, execution: structured.execution };
+      } catch {}
+      return { reply: text };
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error("A execução terminou sem uma mensagem disponível.");
 }
 async function streamRun(body, res) {
   const url = agentRunsUrl();
@@ -94,8 +113,7 @@ async function streamRun(body, res) {
   });
   if (!created.ok) {
     console.error("Orchestrate run create failed", created.status);
-    const fallback = await chat({ message: body.message });
-    sendEvent(res, { event: "run.completed", execution: [{ label: "Consulta local de contingência", status: "done" }], reply: fallback.reply });
+    sendEvent(res, { error: `Não foi possível iniciar o agente (HTTP ${created.status}).` });
     return;
   }
   const run = await created.json();
@@ -111,15 +129,15 @@ async function streamRun(body, res) {
     const statusResponse = await fetch(`${url}/${encodeURIComponent(runId)}`, { headers });
     if (!statusResponse.ok) {
       console.error("Orchestrate run status failed", statusResponse.status);
-      const fallback = await chat({ message: body.message });
-      sendEvent(res, { event: "run.completed", execution: [{ label: "Consulta local de contingência", status: "done" }], reply: fallback.reply });
+      sendEvent(res, { error: `Não foi possível acompanhar o agente (HTTP ${statusResponse.status}).` });
       return;
     }
     const status = await statusResponse.json();
     const state = String(status.status || status.state || "").toLowerCase();
     if (["completed", "complete", "failed", "cancelled", "canceled", "error"].includes(state)) {
       if (state === "completed" || state === "complete") {
-        sendEvent(res, { event: "run.completed", execution: status.execution, reply: extractRunText(status) });
+        const answer = await finalRunMessage(url, headers, run.thread_id || body.threadId, runId);
+        sendEvent(res, { event: "run.completed", ...answer });
       } else {
         sendEvent(res, { error: status.error || "O atendimento não foi concluído." });
       }
@@ -141,8 +159,7 @@ async function streamChat(body, res) {
     return res.end();
   }
   if (process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
-    const fallback = await chat({ message: body.message });
-    sendEvent(res, { event: "run.completed", execution: [{ label: "Consulta de dados", status: "done" }], reply: fallback.reply });
+    sendEvent(res, { error: "A integração do agente não está configurada no servidor." });
     sendEvent(res, "[DONE]");
     return res.end();
   }
