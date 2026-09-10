@@ -24,11 +24,11 @@ try:
         page.locator('.save-case').wait_for()
         assert page.locator('.processing').count() == 1
         # Finished steps stay expanded by default; the toggle only collapses.
-        assert page.locator('.compact-steps').is_visible()
+        assert page.locator('.step-flow').is_visible()
         page.locator('.processing-toggle').click()
-        assert page.locator('.compact-steps').count() == 0
+        assert page.locator('.step-flow').count() == 0
         page.locator('.processing-toggle').click()
-        assert page.locator('.compact-steps').is_visible()
+        assert page.locator('.step-flow').is_visible()
         page.locator('.save-case').click()
         # Saved sidebar is overlaid by the live progress panel until a new
         # attendance starts — "Novo atendimento" brings it back.

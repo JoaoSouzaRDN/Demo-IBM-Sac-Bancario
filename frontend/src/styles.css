@@ -764,6 +764,77 @@ h2 {
     box-shadow: 0 0 0 4px #ff881c30;
   }
 }
+.mini-light svg {
+  width: 9px;
+  height: 9px;
+}
+.mini-light.big {
+  width: 19px;
+  height: 19px;
+}
+.mini-light.big svg {
+  width: 13px;
+  height: 13px;
+}
+.mini-light.big.done {
+  background: #37ffb115;
+  color: #37ffb1;
+  box-shadow: 0 0 0 3px #37ffb10d;
+}
+/* The step that's actually running gets the big breathing dot, right at
+   its own row; finished steps shrink to a small check as they float up. */
+.step-flow {
+  list-style: none;
+  margin: 2px 0 6px;
+  padding: 0;
+}
+.step-flow li {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 5px 0;
+  font-size: 11px;
+  color: #a8aab4;
+}
+.flow-light {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  transition: width 0.25s, height 0.25s;
+}
+.flow-light svg {
+  width: 9px;
+  height: 9px;
+}
+.flow-done {
+  color: #37ffb1;
+}
+.flow-done .flow-light {
+  background: #37ffb110;
+}
+.flow-error {
+  color: #ff7777;
+}
+.flow-error .flow-light {
+  background: #ff7a7a22;
+}
+.flow-active {
+  color: #ffaa56;
+  font-weight: 500;
+  font-size: 12px;
+}
+.flow-active .flow-light {
+  width: 19px;
+  height: 19px;
+  background: radial-gradient(circle at 35% 25%, #ffcb72, #ff881c 62%, #ff6615);
+  box-shadow:
+    0 0 0 4px #ff881c1a,
+    0 0 14px #ff881c40;
+  animation: breathe-mini 1.7s ease-in-out infinite;
+}
 .shimmer-text {
   background: linear-gradient(
     90deg,

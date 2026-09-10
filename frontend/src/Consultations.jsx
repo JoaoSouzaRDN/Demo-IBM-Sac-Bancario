@@ -85,41 +85,47 @@ export function Processing({ steps, busy, error }) {
   const listRef = useStepFlip(steps);
   return (
     <div className="processing">
+      {expanded && (
+        <ol className="step-flow" ref={listRef}>
+          {orderedSteps(steps).map((step) => (
+            <li
+              key={step.id}
+              data-flip-key={step.id}
+              className={`flow-${step.status}`}
+            >
+              <span className="flow-light">
+                {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
+              </span>
+              <span className={step.status === "active" ? "shimmer-text" : undefined}>
+                {step.label}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
       <button
         className="processing-toggle"
         onClick={() => setExpanded((value) => !value)}
         aria-expanded={expanded}
       >
-        <span
-          className={`mini-light ${busy ? "active" : error ? "failed" : "done"}`}
-        >
-          {!busy && !error && "✓"}
-        </span>
-        <span className={busy ? "shimmer-text" : undefined}>
-          {busy
-            ? active?.label || "Processando solicitação"
-            : error
-              ? "Processamento interrompido"
-              : `${steps.length} etapas concluídas`}
+        {!expanded && (
+          <span
+            className={`mini-light big ${busy ? "active" : error ? "failed" : "done"}`}
+          >
+            {!busy && !error && <Icon check />}
+          </span>
+        )}
+        <span className={busy && !expanded ? "shimmer-text" : undefined}>
+          {expanded
+            ? "Recolher"
+            : busy
+              ? active?.label || "Processando solicitação"
+              : error
+                ? "Processamento interrompido"
+                : `${steps.length} etapas concluídas`}
         </span>
         <span className="processing-chevron">{expanded ? "⌃" : "⌄"}</span>
       </button>
-      {expanded && (
-        <ol className="compact-steps" ref={listRef}>
-          {orderedSteps(steps).map((step) => (
-            <li key={step.id} data-flip-key={step.id}>
-              <span className={step.status}>
-                {step.status === "done"
-                  ? "✓"
-                  : step.status === "error"
-                    ? "!"
-                    : "•"}
-              </span>
-              {step.label}
-            </li>
-          ))}
-        </ol>
-      )}
     </div>
   );
 }
