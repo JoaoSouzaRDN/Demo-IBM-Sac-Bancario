@@ -36,23 +36,36 @@ function useStepFlip(dep) {
       return;
     }
     const nodes = container.querySelectorAll("[data-flip-key]");
+    // Read every position first, then write — interleaving reads and
+    // writes per node forces a synchronous layout on every iteration.
     const next = new Map();
+    const moved = [];
     nodes.forEach((node) => {
       const key = node.dataset.flipKey;
       const top = node.getBoundingClientRect().top;
       next.set(key, top);
       const prevTop = positions.current.get(key);
       if (prevTop != null && prevTop !== top) {
-        const delta = prevTop - top;
-        node.style.transition = "none";
-        node.style.transform = `translateY(${delta}px)`;
-        requestAnimationFrame(() => {
-          node.style.transition = "transform 0.35s ease";
-          node.style.transform = "";
-        });
+        moved.push({ node, delta: prevTop - top });
       }
     });
     positions.current = next;
+    if (!moved.length) return;
+    moved.forEach(({ node, delta }) => {
+      node.style.transition = "none";
+      node.style.transform = `translateY(${delta}px)`;
+    });
+    // Force the browser to commit the "jump back to the old spot" before
+    // re-enabling the transition — without this the two writes can get
+    // batched together and the animation never plays, or plays only
+    // halfway, which is what "stuck" janky movement usually is.
+    void container.offsetHeight;
+    requestAnimationFrame(() => {
+      moved.forEach(({ node }) => {
+        node.style.transition = "transform 0.35s ease";
+        node.style.transform = "";
+      });
+    });
   }, [dep]);
   return containerRef;
 }

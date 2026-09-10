@@ -504,13 +504,14 @@ h2 {
 .compact-steps li:has(.done) {
   animation: step-settle 0.35s ease;
 }
+/* Opacity only — the FLIP reposition animation on these same rows owns
+   `transform`; animating it here too would fight the FLIP transition and
+   make the reorder look stuck/janky instead of sliding smoothly. */
 @keyframes step-settle {
   from {
-    transform: translateY(5px);
     opacity: 0.5;
   }
   to {
-    transform: translateY(0);
     opacity: 1;
   }
 }
