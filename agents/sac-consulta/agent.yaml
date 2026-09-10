@@ -1,5 +1,5 @@
 spec_version: v1
-kind: agent
+kind: native
 name: sac_consulta
 display_name: RDN Bank - Agente de consulta
 description: Agente interno que consulta as tools de dados mockados para apoiar o agente principal.
