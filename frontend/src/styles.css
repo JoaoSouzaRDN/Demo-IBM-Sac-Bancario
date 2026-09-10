@@ -147,6 +147,24 @@ input:focus-visible {
 .progress-error {
   color: #ff9292;
 }
+.panel-fade {
+  animation: panel-fade 0.3s ease;
+}
+@keyframes panel-fade {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .panel-fade {
+    animation: none;
+  }
+}
 .conversation {
   display: flex;
   flex-direction: column;
@@ -656,6 +674,93 @@ h2 {
 }
 .compact-steps .error {
   color: #ff7777;
+}
+.typing-bubble {
+  padding: 15px 18px;
+}
+.typing-dots {
+  display: flex;
+  gap: 5px;
+}
+.typing-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #9497a3;
+  animation: typing-bounce 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+.quick-chips {
+  padding: 0 30px 4px;
+}
+.quick-chips-label {
+  color: var(--muted);
+  font-size: 10px;
+  display: block;
+  margin-bottom: 8px;
+}
+.quick-chips > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.quick-chips button {
+  padding: 8px 11px;
+  background: #2a2c31;
+  color: #d3b5ed;
+  border: 0;
+  border-radius: 9px;
+  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition:
+    background 0.2s,
+    transform 0.2s;
+}
+.quick-chips button:hover {
+  background: #393b42;
+  transform: translateY(-2px);
+}
+.quick-chips svg {
+  width: 12px;
+  color: #a0a0ac;
+  flex: none;
+}
+.saved-card.just-updated {
+  animation: card-flash 2.2s ease;
+}
+@keyframes card-flash {
+  0% {
+    box-shadow: 0 0 0 2px #37ffb100;
+  }
+  15% {
+    box-shadow: 0 0 0 2px #37ffb1aa;
+  }
+  100% {
+    box-shadow: 0 0 0 2px #37ffb100;
+  }
 }
 .save-case {
   color: #dfc7f4;

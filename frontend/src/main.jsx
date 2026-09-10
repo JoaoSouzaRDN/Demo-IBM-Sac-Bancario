@@ -97,6 +97,7 @@ function App() {
     }
   });
   const [deleting, setDeleting] = useState(null);
+  const [flashKey, setFlashKey] = useState(null);
   useEffect(() => {
     try {
       localStorage.setItem("rdn-consultations-v1", JSON.stringify(saved));
@@ -164,6 +165,13 @@ function App() {
         ...previous,
         { role: "agent", text: answer, steps: turnSteps, cases },
       ]);
+      const changed = cases.find((updated) => {
+        const item = saved.find(
+          (stored) =>
+            stored.id === updated.id && stored.category === updated.category,
+        );
+        return item && item.status !== updated.status;
+      });
       setSaved((previous) =>
         previous.map(
           (item) =>
@@ -173,6 +181,11 @@ function App() {
             ) || item,
         ),
       );
+      if (changed) {
+        const key = `${changed.category}:${changed.id}`;
+        setFlashKey(key);
+        setTimeout(() => setFlashKey((current) => (current === key ? null : current)), 2200);
+      }
     } catch (failure) {
       if (controller.signal.aborted) return;
       setError(failure.message);
@@ -187,6 +200,11 @@ function App() {
         setBusy(false);
       }
     }
+  }
+  function refreshItem(item) {
+    send(
+      `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
+    );
   }
   return (
     <main className="page">
@@ -268,10 +286,46 @@ function App() {
                   )}
                 </React.Fragment>
               ))}
+              {busy && !error && (
+                <div className="message-row agent">
+                  <span className="message-author">
+                    <span className="avatar agent" />
+                    RDN Assistente
+                  </span>
+                  <div className="msg agent typing-bubble">
+                    <span className="typing-dots">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </div>
+                </div>
+              )}
               {(busy || error) && (
                 <Processing steps={steps} busy={busy} error={error} />
               )}
             </div>
+            {!busy && saved.length > 0 && (
+              <div className="quick-chips">
+                <span className="quick-chips-label">Continuar acompanhando:</span>
+                <div>
+                  {saved
+                    .slice()
+                    .sort((a, b) => new Date(b.checkedAt) - new Date(a.checkedAt))
+                    .slice(0, 3)
+                    .map((item) => (
+                      <button
+                        key={`${item.category}:${item.id}`}
+                        onClick={() => refreshItem(item)}
+                        title={`Consultar novamente: ${item.title}`}
+                      >
+                        {item.title}
+                        <Icon />
+                      </button>
+                    ))}
+                </div>
+              </div>
+            )}
             <form
               id="form"
               onSubmit={(event) => {
@@ -307,17 +361,15 @@ function App() {
           </section>
           <div className="side-rail">
             {steps.length > 0 ? (
-              <LiveProgress steps={steps} busy={busy} error={error} />
+              <LiveProgress key="live" steps={steps} busy={busy} error={error} />
             ) : (
               <SavedSidebar
+                key="saved"
                 saved={saved}
                 busy={busy}
+                flashKey={flashKey}
                 askDelete={setDeleting}
-                refresh={(item) =>
-                  send(
-                    `Qual é o status atual da consulta ${item.title}? Categoria: ${item.category}; registro confirmado: ${item.id}. Consulte novamente no banco, por favor.`,
-                  )
-                }
+                refresh={refreshItem}
               />
             )}
           </div>

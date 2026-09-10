@@ -80,7 +80,7 @@ export function LiveProgress({ steps, busy, error }) {
   const hasSteps = steps.length > 0;
   const done = steps.filter((step) => step.status === "done").length;
   return (
-    <aside className="progress-panel live-panel" aria-label="Andamento da solicitação">
+    <aside className="progress-panel live-panel panel-fade" aria-label="Andamento da solicitação">
       <div className="panel-heading">
         <span className="eyebrow">ACOMPANHAMENTO</span>
         <span className={`connection ${busy ? "working" : ""}`} />
@@ -145,9 +145,9 @@ function Icon({ check = false }) {
   );
 }
 
-export function SavedSidebar({ saved, busy, refresh, askDelete }) {
+export function SavedSidebar({ saved, busy, refresh, askDelete, flashKey }) {
   return (
-    <aside className="progress-panel saved-panel" aria-label="Consultas salvas">
+    <aside className="progress-panel saved-panel panel-fade" aria-label="Consultas salvas">
       <span className="eyebrow">SEUS ACOMPANHAMENTOS</span>
       <h2>
         Consultas salvas <span className="saved-count">{saved.length}</span>
@@ -171,7 +171,10 @@ export function SavedSidebar({ saved, busy, refresh, askDelete }) {
       )}
       <div className="saved-list">
         {saved.map((item) => (
-          <article className="saved-card" key={`${item.category}:${item.id}`}>
+          <article
+            className={`saved-card ${flashKey === `${item.category}:${item.id}` ? "just-updated" : ""}`}
+            key={`${item.category}:${item.id}`}
+          >
             <button
               className="saved-open"
               disabled={busy}
