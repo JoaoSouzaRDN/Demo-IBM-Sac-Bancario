@@ -2,7 +2,25 @@ const http = require("http"),
   fs = require("fs"),
   path = require("path");
 const root = path.join(__dirname, "..", "frontend");
+const mockDb = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "mock-db", "data.json"), "utf8"));
+function lookupMock(message = "") {
+  const text = message.toLowerCase();
+  if (text.includes("pix") || text.includes("não chegou") || text.includes("nao chegou")) return { type: "Pix não recebido", record: mockDb.pix[0] };
+  if (text.includes("cartão") || text.includes("cartao")) return { type: "Cartão", record: mockDb.cards[0] };
+  if (text.includes("compra")) return { type: "Compra contestada", record: mockDb.purchases[0] };
+  if (text.includes("parcela") || text.includes("atras")) return { type: "Parcela em atraso", record: mockDb.loans[0] };
+  if (text.includes("cadastro") || text.includes("dados") || text.includes("email") || text.includes("telefone")) return { type: "Atualização cadastral", record: mockDb.profiles[0] };
+  return { type: "Atendimento geral", record: null };
+}
 async function chat(body) {
+  const context = lookupMock(body.message);
+  if (!process.env.WO_CHAT_URL) {
+    return {
+      reply: `Consultei os dados de ${context.type}. Status encontrado: ${context.record?.status || "preciso de mais detalhes para localizar seu atendimento"}.`,
+      context,
+    };
+  }
+  body.context = context;
   if (!process.env.WO_CHAT_URL)
     return {
       reply:

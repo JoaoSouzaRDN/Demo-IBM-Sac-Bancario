@@ -6,6 +6,12 @@ const options = [
   "Quero atualizar meus dados",
 ];
 const $ = (s) => document.querySelector(s);
+const flowLabels = ["Cliente identificado", "Solicitação entendida", "Consultando dados", "Aplicando regras", "Resposta preparada"];
+function renderChecklist(active = 0, done = -1) {
+  const panel = document.querySelector(".checklist");
+  if (!panel) return;
+  panel.innerHTML = `<b>Histórico do atendimento</b><div id="checklistSteps">${flowLabels.map((label, i) => `<div class="check ${i <= done ? "done" : i === active ? "active" : ""}"><i></i><span>${label}</span>${i === active ? "<small>em andamento</small>" : ""}</div>`).join("")}</div>`;
+}
 function add(t, w = "agent") {
   $("#messages").insertAdjacentHTML(
     "beforeend",
@@ -16,6 +22,7 @@ function start() {
   const messages = $("#messages");
   const suggestions = $("#suggestions");
   messages.innerHTML = "";
+  renderChecklist(0, -1);
   suggestions.style.display = "flex";
   suggestions.innerHTML = options
     .map((x) => `<button type="button">${x}</button>`)
@@ -34,19 +41,23 @@ function start() {
 }
 async function send(t) {
   if (!t) return;
+  renderChecklist(1, 0);
   add(t, "user");
   $("#input").value = "";
   add("Consultando os sistemas do banco…");
   try {
+    renderChecklist(2, 1);
     const r = await fetch("/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: t }),
     });
     const d = await r.json();
+    renderChecklist(4, 3);
     document.querySelectorAll(".agent").at(-1).remove();
     add(d.reply || d.output || "Atendimento concluído.");
   } catch (e) {
+    renderChecklist(4, 1);
     document.querySelectorAll(".agent").at(-1).remove();
     add("Não foi possível conectar ao agente.");
   }

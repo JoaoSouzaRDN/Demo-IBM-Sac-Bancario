@@ -115,6 +115,45 @@ body::before {
   overflow: hidden !important;
 }
 
+.checklist b {
+  display: block;
+  margin-bottom: 18px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  font-size: 11px;
+}
+.check {
+  position: relative;
+  display: grid;
+  grid-template-columns: 14px 1fr;
+  gap: 9px;
+  padding: 0 0 18px;
+  color: #aeb1b8;
+  font-size: 13px;
+}
+.check:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  top: 14px;
+  bottom: 2px;
+  width: 1px;
+  background: #555860;
+}
+.check i {
+  width: 12px;
+  height: 12px;
+  margin-top: 2px;
+  border-radius: 50%;
+  border: 2px solid #7b7f88;
+  background: #191b21;
+  z-index: 1;
+}
+.check.done i { background: #168b69; border-color: #168b69; }
+.check.active i { background: #1769ee; border-color: #1769ee; box-shadow: 0 0 0 4px rgba(23,105,238,.18); }
+.check span { line-height: 1.35; }
+.check small { grid-column: 2; color: #8d929d; font-size: 11px; margin-top: -5px; }
+
 .msg {
   overflow-wrap: anywhere !important;
   word-break: break-word !important;
