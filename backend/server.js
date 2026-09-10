@@ -3,6 +3,22 @@ const http = require("http"),
   path = require("path");
 const root = path.join(__dirname, "..", "frontend");
 const mockDb = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "mock-db", "data.json"), "utf8"));
+let iamToken = null;
+let iamTokenExpiresAt = 0;
+async function getAuthToken() {
+  if (process.env.WO_BEARER_TOKEN) return process.env.WO_BEARER_TOKEN;
+  if (iamToken && Date.now() < iamTokenExpiresAt) return iamToken;
+  const response = await fetch("https://iam.cloud.ibm.com/identity/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded", Accept: "application/json" },
+    body: new URLSearchParams({ grant_type: "urn:ibm:params:oauth:grant-type:apikey", apikey: process.env.WO_API_KEY }),
+  });
+  if (!response.ok) throw new Error(`IAM token HTTP ${response.status}`);
+  const data = await response.json();
+  iamToken = data.access_token;
+  iamTokenExpiresAt = Date.now() + Math.max(60, (data.expiration - Math.floor(Date.now() / 1000) - 60)) * 1000;
+  return iamToken;
+}
 function lookupMock(message = "") {
   const text = message.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   if (text.includes("cart")) return { type: "Cartao", record: mockDb.cards[0] };
@@ -31,7 +47,7 @@ async function chat(body) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.WO_API_KEY}`,
+      Authorization: `Bearer ${await getAuthToken()}`,
     },
     body: JSON.stringify(body),
   });
@@ -59,7 +75,7 @@ async function streamChat(body, res) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${process.env.WO_API_KEY}`,
+      Authorization: `Bearer ${await getAuthToken()}`,
       ...(body.threadId ? { "X-IBM-THREAD-ID": body.threadId } : {}),
     },
     body: JSON.stringify({
