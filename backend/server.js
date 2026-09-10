@@ -59,13 +59,92 @@ function agentChatUrl() {
     return `${process.env.WO_API_URL.replace(/\/$/, "")}/v1/orchestrate/${process.env.WO_AGENT_ID}/chat/completions`;
   return null;
 }
+function agentRunsUrl() {
+  if (!process.env.WO_API_URL || !process.env.WO_AGENT_ID) return null;
+  return `${process.env.WO_API_URL.replace(/\/$/, "")}/v1/orchestrate/runs`;
+}
+function extractRunText(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (Array.isArray(value)) return value.map(extractRunText).filter(Boolean).join("\n");
+  if (typeof value === "object") {
+    if (typeof value.reply === "string") return value.reply;
+    if (typeof value.output === "string") return value.output;
+    if (typeof value.text === "string") return value.text;
+    if (typeof value.content === "string") return value.content;
+    for (const key of ["messages", "message", "response", "result", "data", "output"]) {
+      const text = extractRunText(value[key]);
+      if (text) return text;
+    }
+  }
+  return "";
+}
+function sendEvent(res, payload) {
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
+}
+async function streamRun(body, res) {
+  const url = agentRunsUrl();
+  const headers = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${await getAuthToken()}`,
+  };
+  const created = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({
+      agent_id: process.env.WO_AGENT_ID,
+      thread_id: body.threadId || undefined,
+      message: { role: "user", content: body.message },
+      capture_logs: true,
+    }),
+  });
+  if (!created.ok) {
+    console.error("Orchestrate run create failed", created.status);
+    sendEvent(res, { error: `Agent HTTP ${created.status}` });
+    return;
+  }
+  const run = await created.json();
+  const runId = run.run_id || run.id;
+  if (run.thread_id) sendEvent(res, { thread_id: run.thread_id });
+  if (!runId) {
+    sendEvent(res, { error: "Agent não retornou run_id" });
+    return;
+  }
+  sendEvent(res, { event: "run.started", run_id: runId });
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const statusResponse = await fetch(`${url}/${encodeURIComponent(runId)}`, { headers });
+    if (!statusResponse.ok) {
+      console.error("Orchestrate run status failed", statusResponse.status);
+      sendEvent(res, { error: `Agent HTTP ${statusResponse.status}` });
+      return;
+    }
+    const status = await statusResponse.json();
+    const state = String(status.status || status.state || "").toLowerCase();
+    if (["completed", "complete", "failed", "cancelled", "canceled", "error"].includes(state)) {
+      if (state === "completed" || state === "complete") {
+        sendEvent(res, { event: "run.completed", execution: status.execution, reply: extractRunText(status) });
+      } else {
+        sendEvent(res, { error: status.error || "O atendimento não foi concluído." });
+      }
+      return;
+    }
+    sendEvent(res, { event: "run.step.intermediate", status: state || "em andamento" });
+  }
+  sendEvent(res, { error: "Tempo limite ao aguardar o agente." });
+}
 async function streamChat(body, res) {
-  const url = agentChatUrl();
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
     "Cache-Control": "no-cache, no-transform",
     Connection: "keep-alive",
   });
+  if (agentRunsUrl() && process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
+    try { await streamRun(body, res); } catch (e) { console.error("Orchestrate run error", e.message); sendEvent(res, { error: "Não foi possível conectar ao agente." }); }
+    sendEvent(res, "[DONE]");
+    return res.end();
+  }
+  const url = agentChatUrl();
   if (!url) {
     res.write(`data: ${JSON.stringify(await chat(body))}\n\n`);
     res.write("data: [DONE]\n\n");

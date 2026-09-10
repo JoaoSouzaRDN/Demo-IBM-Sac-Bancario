@@ -80,11 +80,13 @@ async function send(t) {
         if (raw === "[DONE]") continue;
         let data;
         try { data = JSON.parse(raw); } catch { continue; }
+        if (data.error) throw new Error(data.error);
         if (data.thread_id) window.__wxoThreadId = data.thread_id;
-        if (renderAgentExecution(data.execution || data.steps)) continue;
-        const eventName = data.event || data.type;
+        const payload = data.data && typeof data.data === "object" ? { ...data, ...data.data } : data;
+        if (renderAgentExecution(payload.execution || payload.steps)) continue;
+        const eventName = payload.event || payload.type;
         if (eventName?.includes("step")) renderChecklist(eventName.includes("completed") ? 3 : 2, eventName.includes("completed") ? 2 : 1);
-        const delta = data.choices?.[0]?.delta?.content || data.delta?.text || data.content || data.reply || "";
+        const delta = payload.choices?.[0]?.delta?.content || payload.delta?.text || payload.content || payload.reply || "";
         if (typeof delta === "string") reply += delta;
       }
     }
