@@ -214,3 +214,30 @@ body::before {
     align-items: flex-start !important;
   }
 }
+
+/* Indicadores do histórico: mesmo marcador do cabeçalho, com atividade pulsante. */
+@keyframes checklist-breathing {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(255, 159, 67, .16), 0 0 8px rgba(255, 159, 67, .25); }
+  50% { box-shadow: 0 0 0 7px rgba(255, 159, 67, .04), 0 0 16px rgba(255, 159, 67, .58); }
+}
+
+.check i {
+  width: 12px !important;
+  height: 12px !important;
+  margin-top: 2px !important;
+  border: 0 !important;
+  border-radius: 50% !important;
+  background: #191b21 !important;
+  box-shadow: none !important;
+}
+
+.check.done i {
+  background: #35d399 !important;
+  box-shadow: 0 0 0 4px #183b3b !important;
+}
+
+.check.active i {
+  background: #ff9f43 !important;
+  box-shadow: 0 0 0 4px rgba(255, 159, 67, .16) !important;
+  animation: checklist-breathing 1.8s ease-in-out infinite !important;
+}
