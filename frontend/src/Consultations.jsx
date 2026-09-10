@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useLayoutEffect, useRef } from "react";
 
 const labels = {
   pending: "Pendente",
@@ -21,6 +21,40 @@ function orderedSteps(steps) {
       return rank !== 0 ? rank : a.index - b.index;
     })
     .map(({ step }) => step);
+}
+// FLIP (First-Last-Invert-Play): when a step is ticked off and its rendered
+// position jumps to the top of the list, this animates that jump instead of
+// letting it snap, so the checked step visibly "flies up" as the active dot
+// sinks toward the bottom.
+function useStepFlip(dep) {
+  const containerRef = useRef(null);
+  const positions = useRef(new Map());
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      positions.current = new Map();
+      return;
+    }
+    const nodes = container.querySelectorAll("[data-flip-key]");
+    const next = new Map();
+    nodes.forEach((node) => {
+      const key = node.dataset.flipKey;
+      const top = node.getBoundingClientRect().top;
+      next.set(key, top);
+      const prevTop = positions.current.get(key);
+      if (prevTop != null && prevTop !== top) {
+        const delta = prevTop - top;
+        node.style.transition = "none";
+        node.style.transform = `translateY(${delta}px)`;
+        requestAnimationFrame(() => {
+          node.style.transition = "transform 0.35s ease";
+          node.style.transform = "";
+        });
+      }
+    });
+    positions.current = next;
+  }, [dep]);
+  return containerRef;
 }
 export function validCases(cases) {
   return Array.isArray(cases)
@@ -48,6 +82,7 @@ export function validCases(cases) {
 export function Processing({ steps, busy, error }) {
   const [expanded, setExpanded] = React.useState(true);
   const active = steps.find((step) => step.status === "active");
+  const listRef = useStepFlip(steps);
   return (
     <div className="processing">
       <button
@@ -70,9 +105,9 @@ export function Processing({ steps, busy, error }) {
         <span className="processing-chevron">{expanded ? "⌃" : "⌄"}</span>
       </button>
       {expanded && (
-        <ol className="compact-steps">
+        <ol className="compact-steps" ref={listRef}>
           {orderedSteps(steps).map((step) => (
-            <li key={step.id}>
+            <li key={step.id} data-flip-key={step.id}>
               <span className={step.status}>
                 {step.status === "done"
                   ? "✓"
@@ -91,6 +126,7 @@ export function Processing({ steps, busy, error }) {
 
 export function LiveProgress({ history = [], steps, busy, error }) {
   const [expandedTurns, setExpandedTurns] = React.useState({});
+  const listRef = useStepFlip(steps);
   const hasSteps = steps.length > 0;
   const hasAny = hasSteps || history.length > 0;
   const done = steps.filter((step) => step.status === "done").length;
@@ -125,11 +161,11 @@ export function LiveProgress({ history = [], steps, busy, error }) {
         </div>
       )}
       {hasAny && (
-        <ol className="steps">
+        <ol className="steps" ref={listRef}>
           {history.map((turn) => {
             const isOpen = !!expandedTurns[turn.id];
             return (
-              <li key={turn.id} className="step done turn-group">
+              <li key={turn.id} data-flip-key={turn.id} className="step done turn-group">
                 <button
                   className="turn-toggle"
                   onClick={() =>
@@ -169,7 +205,7 @@ export function LiveProgress({ history = [], steps, busy, error }) {
             );
           })}
           {orderedSteps(steps).map((step) => (
-            <li key={step.id} className={`step ${step.status}`}>
+            <li key={step.id} data-flip-key={step.id} className={`step ${step.status}`}>
               <span className="step-light">
                 {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
               </span>
