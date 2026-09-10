@@ -46,7 +46,7 @@ export function validCases(cases) {
 }
 
 export function Processing({ steps, busy, error }) {
-  const [expanded, setExpanded] = React.useState(false);
+  const [expanded, setExpanded] = React.useState(true);
   const active = steps.find((step) => step.status === "active");
   return (
     <div className="processing">

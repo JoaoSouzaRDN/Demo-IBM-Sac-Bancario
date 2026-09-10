@@ -23,6 +23,9 @@ try:
         page.locator('#suggestions button').first.click()
         page.locator('.save-case').wait_for()
         assert page.locator('.processing').count() == 1
+        # Finished steps stay expanded by default; the toggle only collapses.
+        assert page.locator('.compact-steps').is_visible()
+        page.locator('.processing-toggle').click()
         assert page.locator('.compact-steps').count() == 0
         page.locator('.processing-toggle').click()
         assert page.locator('.compact-steps').is_visible()

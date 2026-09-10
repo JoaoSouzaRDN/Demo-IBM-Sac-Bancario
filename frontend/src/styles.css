@@ -353,6 +353,12 @@ form::before {
   background: #292b30;
   border-radius: 14px;
   box-shadow: inset 0 1px 0 #ffffff08;
+  transition: box-shadow 0.2s;
+}
+.compose:focus-within {
+  box-shadow:
+    inset 0 1px 0 #ffffff08,
+    0 0 0 2px #9733ee66;
 }
 input {
   min-width: 0;
@@ -362,6 +368,9 @@ input {
   border: 0;
   background: transparent;
   font-size: 13px;
+}
+input:focus-visible {
+  outline: none;
 }
 input::placeholder {
   color: #a1a1ab;
