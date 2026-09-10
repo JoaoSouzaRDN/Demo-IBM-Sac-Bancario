@@ -1,6 +1,6 @@
 # Demo IBM — SAC bancário
 
-Demo local com cinco jornadas de atendimento e dados mockados. O front usa um adaptador local por padrão; para conectar ao watsonx Orchestrate, configure `WO_CHAT_URL` no backend (a API key fica somente no servidor).
+Demo local com cinco jornadas de atendimento e dados mockados. O front usa um adaptador local por padrão; para conectar ao watsonx Orchestrate, configure `WO_API_URL e WO_AGENT_ID` no backend (a API key fica somente no servidor).
 
 ## Jornadas
 

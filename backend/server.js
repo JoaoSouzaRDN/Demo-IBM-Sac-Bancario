@@ -31,19 +31,14 @@ function lookupMock(message = "") {
 }
 async function chat(body) {
   const context = lookupMock(body.message);
-  if (!process.env.WO_CHAT_URL || process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
+  const url = agentChatUrl();
+  if (!url || process.env.WO_USE_CHAT_COMPLETIONS !== "true") {
     return {
       reply: `Consultei os dados de ${context.type}. Status encontrado: ${context.record?.status || "preciso de mais detalhes para localizar seu atendimento"}.`,
       context,
     };
   }
-  // Com o agente configurado, ele próprio chama as tools e devolve o contexto.
-  if (!process.env.WO_CHAT_URL)
-    return {
-      reply:
-        "Modo demonstração ativo. Configure WO_CHAT_URL no servidor para usar o GPT-5.4.",
-    };
-  const r = await fetch(process.env.WO_CHAT_URL, {
+  const r = await fetch(url, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -54,7 +49,6 @@ async function chat(body) {
   return await r.json();
 }
 function agentChatUrl() {
-  if (process.env.WO_CHAT_URL) return process.env.WO_CHAT_URL;
   if (process.env.WO_API_URL && process.env.WO_AGENT_ID)
     return `${process.env.WO_API_URL.replace(/\/$/, "")}/v1/orchestrate/${process.env.WO_AGENT_ID}/chat/completions`;
   return null;
