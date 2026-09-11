@@ -2,7 +2,7 @@
   "customers": [
     {
       "id": "cli-001",
-      "name": "Mariana Oliveira",
+      "name": "Daniele Soares",
       "cpf": "***.***.***-42",
       "account": "000123-4"
     }
@@ -14,7 +14,7 @@
       "amount": 850,
       "date": "2026-09-08T21:42:00-03:00",
       "status": "pending",
-      "recipient": "Rafael Oliveira",
+      "recipient": "Humberto Palma",
       "protocol": "MED-20260908-019",
       "reason": "Aguardando confirmação de liquidação do SPI; o débito foi registrado, mas a confirmação de crédito ainda não retornou.",
       "coreDebitConfirmed": true,
@@ -52,7 +52,7 @@
   "profiles": [
     {
       "customerId": "cli-001",
-      "email": "mariana.demo@example.com",
+      "email": "daniele.demo@example.com",
       "phone": "(11) 99999-0000",
       "status": "needs_review"
     }

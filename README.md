@@ -30,6 +30,6 @@ O teste de navegador `python tools/verify_chat.py` usa Playwright e python-doten
 
 ## Pix e consultas salvas
 
-O agente busca por valor e data, apresenta o candidato e só consulta o status após confirmação. Exemplo do banco de demonstração: R$ 850 em 08/09/2026, favorecido Rafael Oliveira. As tools consultam `/api/demo/records` no Render; esse endpoint somente expõe os registros fictícios do cliente fixo `cli-001` e não deve ser usado com dados bancários reais.
+O agente busca por valor e data, apresenta o candidato e só consulta o status após confirmação. Exemplo do banco de demonstração: R$ 850 em 08/09/2026, favorecido Humberto Palma. As tools consultam `/api/demo/records` no Render; esse endpoint somente expõe os registros fictícios do cliente fixo `cli-001` e não deve ser usado com dados bancários reais.
 
 “Salvar consulta” mantém o identificador e o último status no localStorage deste navegador. Clicar no cartão pede uma nova consulta ao agente. Excluir remove somente a visualização local, após confirmação, sem cancelar o registro bancário. As etapas operacionais de cada resposta ficam recolhidas acima dela.

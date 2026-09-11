@@ -25,7 +25,7 @@ with sync_playwright() as p:
     assert 'valor' in first.lower() and 'data' in first.lower()
     assert not any(term in first.lower() for term in ['cpf', 'comprovante', 'e2e', 'banco de destino'])
     candidate = send('Foi de R$ 850 em 08/09/2026')
-    assert '850' in candidate and 'Rafael' in candidate
+    assert '850' in candidate and 'Humberto' in candidate
     assert '?' in candidate
     assert page.locator('.save-case').count() == 0
     status = send('Sim, é esse Pix. Qual o status e por que não chegou?')
