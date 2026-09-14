@@ -66,15 +66,21 @@ function createProgress(emit) {
         const label = toolLabels[call.name];
         if (label) {
           complete("understand");
-          set(call.id || call.tool_call_id || call.name, label, "active");
+          // Orchestrate can retry a collaborator call (e.g. its own
+          // reflection/retry loop) with a brand-new tool_call id for the
+          // same logical step. Reuse the existing row by label instead of
+          // adding a second one, so a retry just re-opens the same step
+          // rather than showing it twice.
+          const existing = steps.find((item) => item.label === label);
+          const id = existing ? existing.id : call.id || call.tool_call_id || call.name;
+          set(id, label, "active");
         }
       }
       if (detail.type === "tool_response" && toolLabels[detail.name]) {
-        set(
-          detail.tool_call_id || detail.name,
-          toolLabels[detail.name],
-          "done",
-        );
+        const label = toolLabels[detail.name];
+        const existing = steps.find((item) => item.label === label);
+        const id = existing ? existing.id : detail.tool_call_id || detail.name;
+        set(id, label, "done");
       }
     }
     if (event.event === "message.delta" && data.delta?.content) {

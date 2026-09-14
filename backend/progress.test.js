@@ -138,6 +138,56 @@ test("external fraud-analysis collaborator is labeled as a tool call, not a curr
   assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
 });
 
+test("a retried collaborator call reuses the same step instead of duplicating it", () => {
+  // Observed in production: Orchestrate's own reflection/retry loop can
+  // call the same collaborator twice with two different tool_call ids in
+  // one turn, which previously showed up as two separate rows for the
+  // same label in the progress panel.
+  const updates = [];
+  const progress = createProgress((event) => updates.push(event));
+  progress.consume({ id: "1", event: "run.started" });
+  const call = (id) => ({
+    id: String(id),
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            type: "tool_calls",
+            tool_calls: [
+              { name: "chat_with_collaborator_analise_fraude_reembolso", id: `fraud${id}` },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  const response = (id) => ({
+    id: `r${id}`,
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            type: "tool_response",
+            tool_call_id: `fraud${id}`,
+            name: "chat_with_collaborator_analise_fraude_reembolso",
+          },
+        ],
+      },
+    },
+  });
+  progress.consume(call(1));
+  progress.consume(response(1));
+  progress.consume(call(2));
+  progress.consume(response(2));
+  const fraudSteps = updates
+    .at(-1)
+    .steps.filter((step) => step.label === "Consultando agente de fraude (Azure AI Foundry)");
+  assert.equal(fraudSteps.length, 1);
+  assert.equal(fraudSteps[0].status, "done");
+});
+
 test("a greeting does not invent a client or Pix query", () => {
   const updates = [];
   const progress = createProgress((event) => updates.push(event));
