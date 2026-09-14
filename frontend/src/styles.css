@@ -3,12 +3,19 @@
 :root {
   font-family: "IBM Plex Sans", sans-serif;
   color: #f4f4f6;
-  background: #100d1c;
+  background: #0e0a16;
   font-synthesis: none;
-  --surface: #1c1e23;
+  /* Redesign brand palette. */
+  --roxo: #8400cd;
+  --lilas: #a151f1;
+  --rosa: #e30294;
+  --rosinha: #ff3dbb;
+  --laranja: #fe6d00;
+  --laranjinha: #ffa765;
+  --surface: #1b1622;
   --muted: #a1a4af;
   --green: #37ffb1;
-  --orange: #ff881c;
+  --orange: var(--laranja);
 }
 * {
   box-sizing: border-box;
@@ -25,7 +32,7 @@ button {
 }
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid #d6b1ff;
+  outline: 2px solid var(--lilas);
   outline-offset: 4px;
 }
 .page {
@@ -33,20 +40,27 @@ input:focus-visible {
   padding: 5vh 4vw;
   display: grid;
   place-items: center;
+  /* Soft brand-colored glows over a near-black base, instead of the old
+     star SVG — same moody dark feel, no extra asset to load. */
   background:
-    linear-gradient(110deg, #09091477, #120d2455),
-    url("/background-stars.svg") center / cover no-repeat;
+    radial-gradient(circle at 12% 15%, #8400cd3d, transparent 42%),
+    radial-gradient(circle at 88% 8%, #e302943d, transparent 45%),
+    radial-gradient(circle at 50% 100%, #fe6d0022, transparent 55%),
+    radial-gradient(circle at 95% 90%, #a151f126, transparent 40%),
+    #0b0710;
 }
 .chat {
   width: min(1280px, 100%);
   height: min(790px, 90dvh);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(18px);
+  border: 1px solid #ffffff0f;
   border-radius: 22px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow:
-    0 24px 70px #0005,
+    0 24px 70px #0007,
     inset 0 1px 0 #ffffff12;
 }
 .chat-header {
@@ -93,7 +107,12 @@ input:focus-visible {
 .gradient {
   border: 0;
   color: white;
-  background: linear-gradient(to right, #da22ff 0%, #9733ee 51%, #da22ff 100%);
+  background: linear-gradient(
+    to right,
+    var(--roxo) 0%,
+    var(--rosa) 51%,
+    var(--roxo) 100%
+  );
   background-size: 200% auto;
   transition:
     background-position 0.4s,
@@ -102,7 +121,7 @@ input:focus-visible {
 }
 .gradient:hover {
   background-position: right center;
-  box-shadow: 0 5px 18px #b22fff33;
+  box-shadow: 0 5px 18px #e3029440;
 }
 .new-chat {
   padding: 12px 16px;
@@ -252,10 +271,10 @@ input:focus-visible {
     inset 0 1px 0 #ffffff0b;
 }
 .msg.agent {
-  background: #303238;
+  background: #2c2733;
 }
 .msg.user {
-  background: linear-gradient(to right, #da22ff, #9733ee 70%, #da22ff);
+  background: linear-gradient(to right, var(--lilas), var(--rosa) 70%, var(--lilas));
 }
 .suggestions {
   margin-top: 6px;
@@ -273,7 +292,7 @@ input:focus-visible {
 }
 .suggestions button {
   padding: 11px 13px;
-  background: #2a2c31;
+  background: #241f2c;
   color: #e3e3e8;
   border: 0;
   border-radius: 10px;
@@ -289,25 +308,25 @@ input:focus-visible {
     transform 0.2s;
 }
 .suggestions button:hover {
-  background: #393b42;
+  background: #332a3f;
   transform: translateY(-2px);
 }
 .suggestions button.priority {
-  background: #ad75d11f;
-  color: #e9d9f8;
+  background: #a151f11f;
+  color: #e8d6fc;
   box-shadow:
     0 4px 9px #0002,
-    inset 0 0 0 1px #ad75d144;
+    inset 0 0 0 1px #a151f144;
 }
 .suggestions button.priority:hover {
-  background: #ad75d133;
+  background: #a151f133;
 }
 .suggestions button.priority svg {
-  color: #d3b5ed;
+  color: #dcc2fb;
 }
 .more-suggestions {
   padding: 11px 16px;
-  background: #2a2c31;
+  background: #241f2c;
   border: 0;
   border-radius: 10px;
   box-shadow:
@@ -318,7 +337,7 @@ input:focus-visible {
     transform 0.2s;
 }
 .more-suggestions:hover {
-  background: #393b42;
+  background: #332a3f;
   transform: translateY(-2px);
 }
 .more-suggestions .dots {
@@ -357,7 +376,7 @@ form::before {
   display: flex;
   padding: 6px;
   gap: 10px;
-  background: #292b30;
+  background: #231e2b;
   border-radius: 14px;
   box-shadow: inset 0 1px 0 #ffffff08;
   transition: box-shadow 0.2s;
@@ -365,7 +384,7 @@ form::before {
 .compose:focus-within {
   box-shadow:
     inset 0 1px 0 #ffffff08,
-    0 0 0 2px #9733ee66;
+    0 0 0 2px #a151f166;
 }
 input {
   min-width: 0;
@@ -432,18 +451,18 @@ input::placeholder {
 }
 .connection.working {
   background: var(--orange);
-  box-shadow: 0 0 0 4px #ff881c17;
+  box-shadow: 0 0 0 4px #fe6d0017;
   animation: breathe-dot 1.7s ease-in-out infinite;
 }
 @keyframes breathe-dot {
   0%,
   100% {
     transform: scale(0.85);
-    box-shadow: 0 0 0 3px #ff881c22;
+    box-shadow: 0 0 0 3px #fe6d0022;
   }
   50% {
     transform: scale(1.15);
-    box-shadow: 0 0 0 6px #ff881c0d;
+    box-shadow: 0 0 0 6px #fe6d000d;
   }
 }
 h2 {
@@ -486,15 +505,15 @@ h2 {
   border-radius: 50%;
   display: grid;
   place-items: center;
-  background: #3c3e46;
+  background: #352e3f;
   position: relative;
   z-index: 1;
 }
 .step.active .step-light {
-  background: radial-gradient(circle at 35% 25%, #ffcb72, #ff881c 62%, #ff6615);
+  background: radial-gradient(circle at 35% 25%, #ffa765, #fe6d00 62%, #e35a00);
   box-shadow:
-    0 0 0 3px #ff881c20,
-    0 0 14px #ff881c50;
+    0 0 0 3px #fe6d0020,
+    0 0 14px #fe6d0050;
   animation: breathe 1.7s ease-in-out infinite;
 }
 .step.done .step-light {
@@ -525,7 +544,7 @@ h2 {
   margin-top: 5px;
 }
 .step.active small {
-  color: #ffaa56;
+  color: #ffa765;
 }
 .step.done small {
   color: #37ffb1;
@@ -564,7 +583,7 @@ h2 {
   cursor: pointer;
 }
 .turn-toggle:focus-visible {
-  outline: 2px solid #d6b1ff;
+  outline: 2px solid var(--lilas);
   outline-offset: 3px;
   border-radius: 6px;
 }
@@ -626,14 +645,14 @@ h2 {
   100% {
     transform: scale(0.88);
     box-shadow:
-      0 0 0 4px #ff881c22,
-      0 0 12px #ff881c44;
+      0 0 0 4px #fe6d0022,
+      0 0 12px #fe6d0044;
   }
   50% {
     transform: scale(1);
     box-shadow:
-      0 0 0 7px #ff881c0d,
-      0 0 22px #ff881c88;
+      0 0 0 7px #fe6d000d,
+      0 0 22px #fe6d0088;
   }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -824,28 +843,28 @@ h2 {
   background: #ff7a7a22;
 }
 .flow-active {
-  color: #ffaa56;
+  color: #ffa765;
   font-weight: 500;
   font-size: 12px;
 }
 .flow-active .flow-light {
   width: 16px;
   height: 16px;
-  background: radial-gradient(circle at 35% 25%, #ffcb72, #ff881c 62%, #ff6615);
+  background: radial-gradient(circle at 35% 25%, #ffa765, #fe6d00 62%, #e35a00);
   box-shadow:
-    0 0 0 3px #ff881c1a,
-    0 0 10px #ff881c40;
+    0 0 0 3px #fe6d001a,
+    0 0 10px #fe6d0040;
   animation: breathe-mini 1.7s ease-in-out infinite;
 }
 @keyframes breathe-mini {
   0%,
   100% {
     transform: scale(0.9);
-    box-shadow: 0 0 0 2px #ff881c22;
+    box-shadow: 0 0 0 2px #fe6d0022;
   }
   50% {
     transform: scale(1);
-    box-shadow: 0 0 0 3px #ff881c30;
+    box-shadow: 0 0 0 3px #fe6d0030;
   }
 }
 .shimmer-text {
@@ -895,7 +914,7 @@ h2 {
   color: #37ffb1;
 }
 .compact-steps .active {
-  color: #ff961b;
+  color: #fe6d00;
 }
 .compact-steps .error {
   color: #ff7777;
@@ -915,8 +934,8 @@ h2 {
   }
 }
 .save-case {
-  color: #dfc7f4;
-  background: #ad75d113;
+  color: #dcc2fb;
+  background: #a151f113;
   border: 0;
   border-radius: 8px;
   font-size: 11px;
@@ -924,7 +943,7 @@ h2 {
   margin-top: 10px;
 }
 .save-case:hover {
-  background: #ad75d12b;
+  background: #a151f12b;
 }
 .save-case:disabled {
   color: #9ecbbb;
@@ -945,7 +964,7 @@ h2 {
 }
 .saved-card {
   position: relative;
-  background: #292b30;
+  background: #231e2b;
   border-radius: 12px;
   box-shadow: 0 4px 12px #0002;
 }
@@ -980,8 +999,8 @@ h2 {
   font-size: 9px;
 }
 .status-badge {
-  color: #ffbc70;
-  background: #ff9c1712;
+  color: #ffa765;
+  background: #fe6d0017;
   padding: 4px 8px;
   border-radius: 6px;
   font-size: 10px;
@@ -992,7 +1011,7 @@ h2 {
   color: #9396a1;
 }
 .refresh-label {
-  color: #d3b5ed;
+  color: #dcc2fb;
   font-size: 10px;
 }
 .delete-saved {
@@ -1019,7 +1038,7 @@ h2 {
 }
 .delete-dialog {
   color: #f1f1f4;
-  background: #25272e;
+  background: #211c29;
   border: 0;
   border-radius: 18px;
   padding: 26px;
@@ -1047,7 +1066,7 @@ h2 {
   margin-top: 22px;
 }
 .dialog-actions button {
-  background: #363841;
+  background: #2f2738;
   color: #fff;
   border: 0;
   padding: 10px 13px;
