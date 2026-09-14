@@ -52,8 +52,11 @@ input:focus-visible {
 .chat {
   width: min(1280px, 100%);
   height: min(790px, 90dvh);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  backdrop-filter: blur(18px);
+  /* backdrop-filter used to sit here for a glass effect, but it creates a
+     new rendering context that clipped the glow around nested elements
+     (e.g. the step-light checkmarks) in scrollable regions on some
+     browsers/GPUs — the translucent background alone is enough. */
+  background: color-mix(in srgb, var(--surface) 94%, transparent);
   border: 1px solid #ffffff0f;
   border-radius: 22px;
   display: flex;
