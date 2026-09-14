@@ -53,6 +53,40 @@ test("observed tools become tasks, replays are ignored, completion stops all act
   assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
 });
 
+test("hop to the external fraud-analysis agent gets its own labeled step", () => {
+  const updates = [];
+  const progress = createProgress((event) => updates.push(event));
+  progress.consume({ id: "1", event: "run.started" });
+  progress.consume({
+    id: "2",
+    event: "run.step.intermediate",
+    data: { current_agent: "sac_consulta" },
+  });
+  progress.consume({
+    id: "3",
+    event: "run.step.intermediate",
+    data: { current_agent: "analise_fraude_reembolso" },
+  });
+  const fraudStep = updates.at(-1).steps.find((step) => step.id === "fraud");
+  assert.equal(fraudStep.label, "Consultando agente de fraude (Azure AI Foundry)");
+  assert.equal(fraudStep.status, "active");
+  assert.equal(
+    updates.at(-1).steps.find((step) => step.id === "consult").status,
+    "done",
+  );
+  progress.consume({
+    id: "4",
+    event: "run.step.intermediate",
+    data: { current_agent: "sac_resposta" },
+  });
+  assert.equal(
+    updates.at(-1).steps.find((step) => step.id === "fraud").status,
+    "done",
+  );
+  progress.finish();
+  assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
+});
+
 test("a greeting does not invent a client or Pix query", () => {
   const updates = [];
   const progress = createProgress((event) => updates.push(event));

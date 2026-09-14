@@ -39,8 +39,16 @@ function createProgress(emit) {
       consulting = true;
       complete("understand");
       set("consult", "Analisando com o agente de consulta", "active");
+    } else if (data.current_agent === "analise_fraude_reembolso") {
+      // External collaborator hosted on Azure AI Foundry, reached via the
+      // A2A adapter — its own labeled step so the cross-platform hop is
+      // visible in the progress panel, not folded into "consult".
+      complete("understand");
+      complete("consult");
+      set("fraud", "Consultando agente de fraude (Azure AI Foundry)", "active");
     } else if (consulting && data.current_agent === "sac_resposta") {
       complete("consult");
+      complete("fraud");
       for (const step of steps) {
         if (step.status === "active" && step.id !== "answer") complete(step.id);
       }
