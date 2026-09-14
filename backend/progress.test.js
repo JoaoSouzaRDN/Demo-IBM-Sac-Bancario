@@ -87,6 +87,57 @@ test("hop to the external fraud-analysis agent gets its own labeled step", () =>
   assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
 });
 
+test("external fraud-analysis collaborator is labeled as a tool call, not a current_agent hop", () => {
+  // Unlike native collaborators (sac_consulta), the external A2A agent is
+  // invoked as a plain tool call in the real event stream — this is the
+  // shape actually observed in production traces.
+  const updates = [];
+  const progress = createProgress((event) => updates.push(event));
+  progress.consume({ id: "1", event: "run.started" });
+  progress.consume({
+    id: "2",
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            type: "tool_calls",
+            tool_calls: [
+              {
+                name: "chat_with_collaborator_analise_fraude_reembolso",
+                id: "fraud1",
+              },
+            ],
+          },
+        ],
+      },
+    },
+  });
+  assert.equal(
+    updates.at(-1).steps.at(-1).label,
+    "Consultando agente de fraude (Azure AI Foundry)",
+  );
+  assert.equal(updates.at(-1).steps.at(-1).status, "active");
+  progress.consume({
+    id: "3",
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            type: "tool_response",
+            tool_call_id: "fraud1",
+            name: "chat_with_collaborator_analise_fraude_reembolso",
+          },
+        ],
+      },
+    },
+  });
+  assert.equal(updates.at(-1).steps.find((s) => s.id === "fraud1").status, "done");
+  progress.finish();
+  assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
+});
+
 test("a greeting does not invent a client or Pix query", () => {
   const updates = [];
   const progress = createProgress((event) => updates.push(event));

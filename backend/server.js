@@ -115,6 +115,34 @@ function extractRunText(value) {
 function sendEvent(res, payload) {
   res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
+const fraudRecommendationText = {
+  aprovar_automatico:
+    "A contestação foi registrada e segue para a análise normal do banco.",
+  revisao_manual:
+    "A contestação foi registrada, mas precisa passar por uma análise adicional antes da confirmação do reembolso.",
+  negar_recomendado:
+    "A contestação foi registrada, mas vai precisar de uma análise mais detalhada antes de qualquer confirmação de reembolso.",
+};
+// Safety net: sac_resposta is instructed to translate the fraud-analysis
+// collaborator's JSON into a natural sentence, but an LLM occasionally
+// echoes that raw JSON as its own reply instead. Detect that specific
+// shape (riskLevel/recommendation) and rewrite it in plain Portuguese
+// before it ever reaches the customer, regardless of which code path
+// produced it.
+function sanitizeReply(text) {
+  if (typeof text !== "string") return text;
+  let candidate = text.trim();
+  try {
+    const parsed = JSON.parse(candidate.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+    if (parsed && typeof parsed === "object" && "riskLevel" in parsed) {
+      return (
+        fraudRecommendationText[parsed.recommendation] ||
+        "A contestação foi registrada e segue para análise."
+      );
+    }
+  } catch {}
+  return text;
+}
 async function finalRunMessage(url, headers, threadId, runId) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const response = await fetch(
@@ -135,12 +163,12 @@ async function finalRunMessage(url, headers, threadId, runId) {
         );
         if (typeof structured.reply === "string" && structured.reply.trim())
           return {
-            reply: structured.reply,
+            reply: sanitizeReply(structured.reply),
             execution: structured.execution,
             cases: Array.isArray(structured.cases) ? structured.cases : [],
           };
       } catch {}
-      return { reply: text };
+      return { reply: sanitizeReply(text) };
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }

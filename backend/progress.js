@@ -5,6 +5,11 @@ const toolLabels = {
   consultar_compra: "Verificando a compra",
   consultar_parcela: "Consultando a parcela",
   consultar_perfil: "Consultando dados cadastrais",
+  // External (A2A) collaborators are invoked as a plain tool call rather
+  // than a current_agent hand-off, unlike native collaborators — so they
+  // need their own entry here to get a labeled step at all.
+  chat_with_collaborator_analise_fraude_reembolso:
+    "Consultando agente de fraude (Azure AI Foundry)",
 };
 
 // Only lifecycle and tool metadata are exposed. Tool arguments and thinking stay private.
