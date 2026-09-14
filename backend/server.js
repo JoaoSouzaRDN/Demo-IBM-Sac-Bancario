@@ -296,8 +296,115 @@ async function streamChat(body, res) {
   for await (const chunk of upstream.body) res.write(chunk);
   res.end();
 }
+// --- Azure AI Foundry A2A adapter -----------------------------------------
+// watsonx Orchestrate's hosted A2A client builds message parts with the
+// older `type` discriminator (pre A2A-0.3). Azure AI Foundry's agent
+// endpoint strictly requires the newer `kind` discriminator and rejects
+// anything else. This adapter sits between the two: it normalizes the
+// outgoing JSON-RPC payload, forwards it to Foundry with the account key
+// (kept server-side, never exposed to Orchestrate), and — since Foundry
+// answers `message/send` asynchronously ("submitted" then "working" then
+// "completed") while Orchestrate's client does not poll — polls
+// `tasks/get` on Foundry's behalf so the call still looks synchronous to
+// Orchestrate. The reasoning itself always runs in Foundry; this only
+// fixes the wire format.
+const FOUNDRY_FRAUDE_A2A_URL =
+  "https://labs-rdn-resource.services.ai.azure.com/api/projects/labs-rdn/agents/RDN-Bank-analise-fraude-reembolso/endpoint/protocols/a2a";
+
+function normalizeA2AMessage(body) {
+  if (body?.method !== "message/send" && body?.method !== "message/stream")
+    return body;
+  const message = body.params?.message;
+  if (!message || typeof message !== "object") return body;
+  if (!message.kind) message.kind = "message";
+  if (Array.isArray(message.parts)) {
+    message.parts = message.parts.map((part) => {
+      if (part && !part.kind && part.type) {
+        const { type, ...rest } = part;
+        return { kind: type, ...rest };
+      }
+      return part;
+    });
+  }
+  return body;
+}
+
+async function foundryA2ACall(body, headers) {
+  const response = await fetch(FOUNDRY_FRAUDE_A2A_URL, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  if (!response.ok)
+    throw new Error(`Foundry A2A HTTP ${response.status}`);
+  return response.json();
+}
+
+async function handleFoundryFraudeA2A(body, res) {
+  if (!process.env.FOUNDRY_FRAUDE_API_KEY) {
+    res.writeHead(502, { "Content-Type": "application/json" });
+    return res.end(
+      JSON.stringify({
+        jsonrpc: "2.0",
+        id: body?.id ?? null,
+        error: { code: -32000, message: "FOUNDRY_FRAUDE_API_KEY not configured" },
+      }),
+    );
+  }
+  const headers = {
+    "Content-Type": "application/json",
+    "api-key": process.env.FOUNDRY_FRAUDE_API_KEY,
+  };
+  const normalized = normalizeA2AMessage(body);
+  let result = await foundryA2ACall(normalized, headers);
+  const requestId = body?.id ?? null;
+  const task = result?.result;
+  if (task?.kind === "task" && task.id) {
+    // Poll on the caller's behalf until the task settles, so a single
+    // JSON-RPC round trip is enough for Orchestrate.
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const state = result?.result?.status?.state;
+      if (state === "completed" || state === "failed" || state === "canceled")
+        break;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      result = await foundryA2ACall(
+        {
+          jsonrpc: "2.0",
+          id: requestId,
+          method: "tasks/get",
+          params: { id: task.id },
+        },
+        headers,
+      );
+    }
+  }
+  if (result && typeof result === "object") result.id = requestId;
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(JSON.stringify(result));
+}
+// ---------------------------------------------------------------------------
 http
   .createServer((req, res) => {
+    if (req.url === "/api/foundry-fraude/a2a" && req.method === "POST") {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", async () => {
+        try {
+          await handleFoundryFraudeA2A(JSON.parse(b), res);
+        } catch (e) {
+          console.error("Foundry A2A proxy error", e.message);
+          if (!res.headersSent) res.writeHead(502, { "Content-Type": "application/json" });
+          res.end(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: null,
+              error: { code: -32000, message: e.message },
+            }),
+          );
+        }
+      });
+      return;
+    }
     if (req.method === "GET" && req.url.startsWith("/api/demo/records?")) {
       const result = lookupRecords(
         new URL(req.url, "http://localhost").searchParams,

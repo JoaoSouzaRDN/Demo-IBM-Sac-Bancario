@@ -1,7 +1,7 @@
 spec_version: v1
 kind: external
 name: analise_fraude_reembolso
-display_name: Análise de Fraude de Reembolso
+display_name: RDN-Bank-analise-fraude-reembolso
 description: >-
   Agente hospedado no Azure AI Foundry (Prompt Agent). Recebe os fatos de uma
   contestação de compra/reembolso e devolve uma avaliação de risco de fraude
@@ -12,8 +12,9 @@ runtime: azure-ai-foundry
 # Preenchido depois que o agente for criado no portal do Foundry e importado no
 # Orchestrate via `orchestrate agents discover`:
 foundry:
-  project_endpoint: "" # https://<resource>.services.ai.azure.com/api/projects/<project>
-  agent_id: ""
+  project_endpoint: "https://labs-rdn-resource.services.ai.azure.com/api/projects/labs-rdn"
+  agent_id: "RDN-Bank-analise-fraude-reembolso"
+  agent_version: "2"
 orchestrate:
   imported_via: "orchestrate agents discover --url <foundry-agent-base-url> --app-id <connection-id>"
   collaborator_of:
