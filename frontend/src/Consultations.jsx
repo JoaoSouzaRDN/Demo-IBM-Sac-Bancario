@@ -374,7 +374,7 @@ export function SavedSidebar({ saved, busy, refresh, askDelete, flashKey }) {
       </div>
       {saved.length > 0 && (
         <p className="saved-note">
-          Salvas neste navegador. Clique para pedir uma nova consulta ao agente.
+          Clique para pedir uma nova consulta ao agente.
         </p>
       )}
     </aside>
