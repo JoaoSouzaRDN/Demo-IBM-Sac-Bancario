@@ -7,9 +7,10 @@ const toolLabels = {
   consultar_perfil: "Consultando dados cadastrais",
   // External (A2A) collaborators are invoked as a plain tool call rather
   // than a current_agent hand-off, unlike native collaborators — so they
-  // need their own entry here to get a labeled step at all.
-  chat_with_collaborator_analise_fraude_reembolso:
-    "Consultando agente de fraude (Azure AI Foundry)",
+  // need their own entry here to get a labeled step at all. The label is
+  // deliberately platform-agnostic: which technology hosts a collaborator
+  // is an implementation detail, not something to surface to the customer.
+  chat_with_collaborator_analise_fraude_reembolso: "Analisando risco da contestação",
 };
 
 // Only lifecycle and tool metadata are exposed. Tool arguments and thinking stay private.
@@ -44,16 +45,11 @@ function createProgress(emit) {
       consulting = true;
       complete("understand");
       set("consult", "Analisando com o agente de consulta", "active");
-    } else if (data.current_agent === "analise_fraude_reembolso") {
-      // External collaborator hosted on Azure AI Foundry, reached via the
-      // A2A adapter — its own labeled step so the cross-platform hop is
-      // visible in the progress panel, not folded into "consult".
-      complete("understand");
-      complete("consult");
-      set("fraud", "Consultando agente de fraude (Azure AI Foundry)", "active");
     } else if (consulting && data.current_agent === "sac_resposta") {
       complete("consult");
-      complete("fraud");
+      // Any collaborator step still active (e.g. the fraud-analysis one,
+      // tracked below via its tool_call rather than a current_agent hop)
+      // wraps up here too.
       for (const step of steps) {
         if (step.status === "active" && step.id !== "answer") complete(step.id);
       }

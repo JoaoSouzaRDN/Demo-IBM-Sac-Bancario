@@ -53,7 +53,12 @@ test("observed tools become tasks, replays are ignored, completion stops all act
   assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
 });
 
-test("hop to the external fraud-analysis agent gets its own labeled step", () => {
+test("an unrecognized current_agent (e.g. the external collaborator's own name) is ignored, not a second step source", () => {
+  // Regression: an earlier version also treated
+  // current_agent === "analise_fraude_reembolso" as its own step source,
+  // *in addition to* the tool_call path below — since neither dedup'd
+  // against the other, the two together produced a visible duplicate row
+  // in production. Only the tool_call path should ever create a step now.
   const updates = [];
   const progress = createProgress((event) => updates.push(event));
   progress.consume({ id: "1", event: "run.started" });
@@ -67,24 +72,27 @@ test("hop to the external fraud-analysis agent gets its own labeled step", () =>
     event: "run.step.intermediate",
     data: { current_agent: "analise_fraude_reembolso" },
   });
-  const fraudStep = updates.at(-1).steps.find((step) => step.id === "fraud");
-  assert.equal(fraudStep.label, "Consultando agente de fraude (Azure AI Foundry)");
-  assert.equal(fraudStep.status, "active");
-  assert.equal(
-    updates.at(-1).steps.find((step) => step.id === "consult").status,
-    "done",
-  );
+  assert.equal(updates.at(-1).steps.find((step) => step.id === "fraud"), undefined);
   progress.consume({
     id: "4",
-    event: "run.step.intermediate",
-    data: { current_agent: "sac_resposta" },
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            type: "tool_calls",
+            tool_calls: [
+              { name: "chat_with_collaborator_analise_fraude_reembolso", id: "fraud1" },
+            ],
+          },
+        ],
+      },
+    },
   });
-  assert.equal(
-    updates.at(-1).steps.find((step) => step.id === "fraud").status,
-    "done",
-  );
-  progress.finish();
-  assert.ok(updates.at(-1).steps.every((step) => step.status === "done"));
+  const fraudSteps = updates
+    .at(-1)
+    .steps.filter((step) => step.label === "Analisando risco da contestação");
+  assert.equal(fraudSteps.length, 1);
 });
 
 test("external fraud-analysis collaborator is labeled as a tool call, not a current_agent hop", () => {
@@ -115,7 +123,7 @@ test("external fraud-analysis collaborator is labeled as a tool call, not a curr
   });
   assert.equal(
     updates.at(-1).steps.at(-1).label,
-    "Consultando agente de fraude (Azure AI Foundry)",
+    "Analisando risco da contestação",
   );
   assert.equal(updates.at(-1).steps.at(-1).status, "active");
   progress.consume({
@@ -183,7 +191,7 @@ test("a retried collaborator call reuses the same step instead of duplicating it
   progress.consume(response(2));
   const fraudSteps = updates
     .at(-1)
-    .steps.filter((step) => step.label === "Consultando agente de fraude (Azure AI Foundry)");
+    .steps.filter((step) => step.label === "Analisando risco da contestação");
   assert.equal(fraudSteps.length, 1);
   assert.equal(fraudSteps[0].status, "done");
 });
