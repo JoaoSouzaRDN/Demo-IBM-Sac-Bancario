@@ -1,6 +1,7 @@
 const http = require("http"),
   fs = require("fs"),
-  path = require("path");
+  path = require("path"),
+  crypto = require("crypto");
 const root = path.join(__dirname, "..", "frontend");
 const { createProgress } = require("./progress");
 const { lookupRecords } = require("./records");
@@ -317,6 +318,7 @@ function normalizeA2AMessage(body) {
   const message = body.params?.message;
   if (!message || typeof message !== "object") return body;
   if (!message.kind) message.kind = "message";
+  if (!message.messageId) message.messageId = crypto.randomUUID();
   if (Array.isArray(message.parts)) {
     message.parts = message.parts.map((part) => {
       if (part && !part.kind && part.type) {
