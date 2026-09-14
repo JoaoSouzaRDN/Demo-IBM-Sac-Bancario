@@ -9,14 +9,29 @@ description: >-
   decisão; a confirmação final continua sendo do agente principal (sac_resposta)
   ou de um analista humano.
 runtime: azure-ai-foundry
-# Preenchido depois que o agente for criado no portal do Foundry e importado no
-# Orchestrate via `orchestrate agents discover`:
 foundry:
   project_endpoint: "https://labs-rdn-resource.services.ai.azure.com/api/projects/labs-rdn"
   agent_id: "RDN-Bank-analise-fraude-reembolso"
   agent_version: "2"
+  a2a_url: "https://labs-rdn-resource.services.ai.azure.com/api/projects/labs-rdn/agents/RDN-Bank-analise-fraude-reembolso/endpoint/protocols/a2a"
 orchestrate:
-  imported_via: "orchestrate agents discover --url <foundry-agent-base-url> --app-id <connection-id>"
+  # `orchestrate agents discover` doesn't work here: it fetches the agent
+  # card with no auth (this endpoint requires one) and expects an older,
+  # looser AgentCard/A2A shape than what Foundry returns. Imported instead
+  # from a hand-written external-agent spec via `orchestrate agents import`.
+  imported_via: "orchestrate agents import -f <external-agent-spec.yaml>"
+  external_agent_api_url: "https://demo-ibm-sac-bancario.onrender.com/api/foundry-fraude/a2a"
+  note: >-
+    api_url points at the backend/server.js adapter
+    (POST /api/foundry-fraude/a2a), not Foundry directly. Orchestrate's
+    hosted A2A client sends message parts with the pre-0.3 `type`
+    discriminator and omits `messageId`; Foundry's endpoint strictly
+    requires A2A 0.3's `kind` discriminator and `messageId`, and answers
+    message/send asynchronously (submitted -> completed) with no polling
+    on Orchestrate's side. The adapter normalizes the payload, forwards it
+    to Foundry with FOUNDRY_FRAUDE_API_KEY (Render env var, never
+    committed), and polls tasks/get so the call still looks synchronous
+    to Orchestrate. The reasoning itself always runs in Foundry.
   collaborator_of:
     - sac_resposta
 instructions_for_foundry: |
