@@ -274,7 +274,7 @@ input:focus-visible {
   background: #2c2733;
 }
 .msg.user {
-  background: linear-gradient(to right, var(--lilas), var(--rosa) 70%, var(--lilas));
+  background: linear-gradient(to right, var(--lilas), var(--rosa));
 }
 .suggestions {
   margin-top: 6px;
