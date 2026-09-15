@@ -209,7 +209,11 @@ async function finalRunMessage(url, headers, threadId, runId) {
             ),
           };
       } catch {}
-      return { reply: sanitizeReply(text) };
+      const cleanReply = sanitizeReply(text);
+      return {
+        reply: cleanReply,
+        cases: withRegisteredPurchaseFallback(cleanReply, []),
+      };
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
