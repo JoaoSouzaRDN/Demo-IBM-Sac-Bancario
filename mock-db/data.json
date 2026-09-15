@@ -36,7 +36,7 @@
       "id": "purchase-001",
       "customerId": "cli-001",
       "amount": 239.9,
-      "merchant": "LOJA EXEMPLO",
+      "merchant": "LOJA RDN",
       "date": "2026-09-07",
       "status": "contested"
     }
