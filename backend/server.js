@@ -48,8 +48,8 @@ function lookupMock(message = "") {
     return { type: "Cartão", record: mockDb.cards[0] };
   if (text.includes("compra"))
     return { type: "Compra contestada", record: mockDb.purchases[0] };
-  if (text.includes("parcela") || text.includes("atras"))
-    return { type: "Parcela em atraso", record: mockDb.loans[0] };
+  if (text.includes("parcela"))
+    return { type: "Parcelas", record: mockDb.loans[0] };
   if (
     text.includes("cadastro") ||
     text.includes("dados") ||

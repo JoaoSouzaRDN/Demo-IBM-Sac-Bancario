@@ -16,7 +16,7 @@ const suggestions = [
   "Fiz um Pix e o dinheiro não chegou",
   "Perdi meu cartão",
   "Quero contestar uma compra",
-  "Minha parcela está atrasada",
+  "Quero ver minhas parcelas",
   "Quero atualizar meus dados",
 ];
 const categoryLabel = {

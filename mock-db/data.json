@@ -26,7 +26,9 @@
       "id": "card-001",
       "customerId": "cli-001",
       "last4": "4821",
-      "status": "active"
+      "status": "active",
+      "invoiceTotal": 1298.4,
+      "invoiceDueDate": "2026-09-20"
     }
   ],
   "purchases": [
@@ -43,10 +45,65 @@
     {
       "id": "loan-001",
       "customerId": "cli-001",
+      "description": "Geladeira",
+      "installment": 3,
+      "totalInstallments": 12,
+      "amount": 189.9,
+      "status": "pending"
+    },
+    {
+      "id": "loan-002",
+      "customerId": "cli-001",
+      "description": "Headset Gamer",
       "installment": 4,
-      "dueDate": "2026-09-05",
-      "amount": 612.4,
-      "status": "overdue"
+      "totalInstallments": 8,
+      "amount": 74.5,
+      "status": "pending"
+    },
+    {
+      "id": "loan-003",
+      "customerId": "cli-001",
+      "description": "IPVA Carro",
+      "installment": 1,
+      "totalInstallments": 4,
+      "amount": 320,
+      "status": "pending"
+    },
+    {
+      "id": "loan-004",
+      "customerId": "cli-001",
+      "description": "Notebook",
+      "installment": 6,
+      "totalInstallments": 10,
+      "amount": 210,
+      "status": "pending"
+    },
+    {
+      "id": "loan-005",
+      "customerId": "cli-001",
+      "description": "Curso Online",
+      "installment": 2,
+      "totalInstallments": 6,
+      "amount": 99,
+      "status": "pending"
+    },
+    {
+      "id": "loan-006",
+      "customerId": "cli-001",
+      "description": "Celular",
+      "installment": 5,
+      "totalInstallments": 12,
+      "amount": 145,
+      "status": "pending"
+    },
+    {
+      "id": "loan-007",
+      "customerId": "cli-001",
+      "description": "Móveis",
+      "installment": 1,
+      "totalInstallments": 3,
+      "amount": 260,
+      "status": "pending"
     }
   ],
   "profiles": [
