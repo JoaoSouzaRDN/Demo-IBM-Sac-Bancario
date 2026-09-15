@@ -143,6 +143,16 @@ function sanitizeReply(text) {
   } catch {}
   return text;
 }
+// Safety net: the "ver minhas parcelas" flow is purely informational and
+// is instructed to always send cases: [], but the LLM has been seen
+// disobeying that and turning each listed installment into a case (which
+// makes a "salvar consulta" button show up per parcela). Category
+// "parcela" never represents a real request/confirmation in this demo, so
+// it's dropped here regardless of what the model sent.
+function sanitizeCases(cases) {
+  if (!Array.isArray(cases)) return [];
+  return cases.filter((item) => item?.category !== "parcela");
+}
 async function finalRunMessage(url, headers, threadId, runId) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const response = await fetch(
@@ -165,7 +175,7 @@ async function finalRunMessage(url, headers, threadId, runId) {
           return {
             reply: sanitizeReply(structured.reply),
             execution: structured.execution,
-            cases: Array.isArray(structured.cases) ? structured.cases : [],
+            cases: sanitizeCases(structured.cases),
           };
       } catch {}
       return { reply: sanitizeReply(text) };
