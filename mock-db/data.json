@@ -51,6 +51,7 @@
   ],
   "profiles": [
     {
+      "id": "profile-001",
       "customerId": "cli-001",
       "email": "daniele.demo@example.com",
       "phone": "(11) 99999-0000",

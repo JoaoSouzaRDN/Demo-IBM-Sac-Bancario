@@ -9,6 +9,16 @@ const labels = {
   completed: "Concluído",
 };
 export const statusLabel = (status) => labels[status] || status;
+// Manual dd/MM/yyyy HH:mm formatting — Intl.toLocaleString's exact output
+// (separators, whether it includes the year) depends on locale/browser
+// quirks; this keeps the format fixed regardless of where it renders.
+const pad2 = (value) => String(value).padStart(2, "0");
+export function formatDateTime(date) {
+  return (
+    `${pad2(date.getDate())}/${pad2(date.getMonth() + 1)}/${date.getFullYear()} ` +
+    `${pad2(date.getHours())}:${pad2(date.getMinutes())}`
+  );
+}
 // Finished steps float to the top as they get ticked off; whatever is still
 // active (or pending) sinks to the bottom, so the list visibly "empties out"
 // upward instead of just flipping icons in place.
@@ -348,15 +358,7 @@ export function SavedSidebar({ saved, busy, refresh, askDelete, flashKey }) {
               <span className="saved-category">{item.category}</span>
               <strong>{item.title}</strong>
               <span className="status-badge">{statusLabel(item.status)}</span>
-              <small>
-                Consultado{" "}
-                {new Date(item.checkedAt).toLocaleString("pt-BR", {
-                  day: "2-digit",
-                  month: "2-digit",
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </small>
+              <small>Consultado {formatDateTime(new Date(item.checkedAt))}</small>
               <span className="refresh-label">
                 Consultar status novamente ↗
               </span>
