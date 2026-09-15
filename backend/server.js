@@ -153,6 +153,34 @@ function sanitizeCases(cases) {
   if (!Array.isArray(cases)) return [];
   return cases.filter((item) => item?.category !== "parcela");
 }
+// Safety net: the compra-contestada flow is instructed to always send the
+// purchase as a case in the same reply that registers the contestation,
+// regardless of the fraud-analysis outcome - but the LLM has repeatedly
+// been seen leaving cases empty on exactly that reply (it only reappears
+// if the customer asks something else afterwards). Detect that specific
+// reply ("contestação ... registrada/registrei") and, if cases came back
+// empty, fill in the purchase record ourselves so the save button always
+// shows up when the contestation is actually registered.
+function withRegisteredPurchaseFallback(reply, cases) {
+  if (cases.length > 0 || typeof reply !== "string") return cases;
+  const text = reply
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+  const registered =
+    text.includes("contestacao") &&
+    (text.includes("registrada") || text.includes("registrei"));
+  const purchase = mockDb.purchases[0];
+  if (!registered || !purchase) return cases;
+  return [
+    {
+      id: purchase.id,
+      category: "compra",
+      title: `Compra contestada em ${purchase.merchant}`,
+      status: purchase.status,
+    },
+  ];
+}
 async function finalRunMessage(url, headers, threadId, runId) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const response = await fetch(
@@ -175,7 +203,10 @@ async function finalRunMessage(url, headers, threadId, runId) {
           return {
             reply: sanitizeReply(structured.reply),
             execution: structured.execution,
-            cases: sanitizeCases(structured.cases),
+            cases: withRegisteredPurchaseFallback(
+              structured.reply,
+              sanitizeCases(structured.cases),
+            ),
           };
       } catch {}
       return { reply: sanitizeReply(text) };
