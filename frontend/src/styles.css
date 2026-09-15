@@ -284,7 +284,10 @@ input:focus-visible {
   background: #2c2733;
 }
 .msg.user {
-  background: linear-gradient(to right, var(--lilas), var(--rosa));
+  /* Same colors as the .gradient buttons (Enviar / Novo atendimento) — just
+     the two stops actually visible on those at rest, without their
+     hover-shifting 200% background-size trick. */
+  background: linear-gradient(to right, var(--roxo), var(--rosa));
 }
 .suggestions {
   margin-top: 6px;
