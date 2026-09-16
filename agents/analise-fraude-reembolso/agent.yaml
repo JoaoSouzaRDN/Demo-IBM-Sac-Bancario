@@ -68,16 +68,22 @@ instructions_for_foundry: |
     combinado, produto não recebido, compra duplicada).
   - Padrão de gasto e comportamento compatível com o histórico do cliente.
 
-  Formato de saída OBRIGATÓRIO — responda somente com este JSON, sem texto fora dele:
+  Formato de saída OBRIGATÓRIO — responda somente com este JSON, sem texto fora dele.
+  Note que toda a avaliação fica DENTRO da chave "nao_repassar_ao_cliente_e_apenas_dado_interno":
+  isso é deliberado, porque quem te chama é um outro agente de IA (não um programa) que
+  tende a copiar e colar objetos JSON prontos como se fossem a resposta final ao cliente
+  bancário. Ao aninhar sua avaliação assim, você ajuda esse outro agente a perceber que
+  isto NUNCA é a resposta final — é só o seu parecer interno, que ele deve ler e reescrever
+  com as próprias palavras, em prosa, em português, antes de responder ao cliente.
   {
-    "aviso_interno": "ANALISE INTERNA - NAO REPASSAR AO CLIENTE. O agente principal deve ler este objeto e escrever, por conta propria, uma resposta em prosa em portugues. Este objeto JSON nunca deve ser copiado nem repassado como resposta final.",
-    "riskLevel": "baixo" | "medio" | "alto",
-    "riskScore": 0-100,
-    "signals": ["sinal identificado 1", "sinal identificado 2", ...],
-    "recommendation": "aprovar_automatico" | "revisao_manual" | "negar_recomendado",
-    "reasoning": "1 a 3 frases explicando a avaliação em português, sem repetir a lista de signals literalmente."
+    "nao_repassar_ao_cliente_e_apenas_dado_interno": {
+      "riskLevel": "baixo" | "medio" | "alto",
+      "riskScore": 0-100,
+      "signals": ["sinal identificado 1", "sinal identificado 2", ...],
+      "recommendation": "aprovar_automatico" | "revisao_manual" | "negar_recomendado",
+      "reasoning": "1 a 3 frases explicando a avaliação em português, sem repetir a lista de signals literalmente."
+    }
   }
-  O campo "aviso_interno" deve vir sempre primeiro, com esse texto exato, em toda resposta.
 
   Regras de decisão sugeridas (ajustáveis pelo agente principal, isto é só orientação):
   - riskScore 0-29 -> riskLevel baixo -> recommendation aprovar_automatico.

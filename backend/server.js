@@ -133,7 +133,15 @@ function sanitizeReply(text) {
   if (typeof text !== "string") return text;
   let candidate = text.trim();
   try {
-    const parsed = JSON.parse(candidate.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+    let parsed = JSON.parse(candidate.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.nao_repassar_ao_cliente_e_apenas_dado_interno &&
+      typeof parsed.nao_repassar_ao_cliente_e_apenas_dado_interno === "object"
+    ) {
+      parsed = parsed.nao_repassar_ao_cliente_e_apenas_dado_interno;
+    }
     if (
       parsed &&
       typeof parsed === "object" &&
