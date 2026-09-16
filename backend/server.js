@@ -134,7 +134,11 @@ function sanitizeReply(text) {
   let candidate = text.trim();
   try {
     const parsed = JSON.parse(candidate.replace(/^```(?:json)?\s*|\s*```$/g, ""));
-    if (parsed && typeof parsed === "object" && "riskLevel" in parsed) {
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      ("riskLevel" in parsed || "aviso_interno" in parsed)
+    ) {
       return (
         fraudRecommendationText[parsed.recommendation] ||
         "A contestação foi registrada e segue para análise."

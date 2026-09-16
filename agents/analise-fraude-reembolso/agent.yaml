@@ -70,12 +70,14 @@ instructions_for_foundry: |
 
   Formato de saída OBRIGATÓRIO — responda somente com este JSON, sem texto fora dele:
   {
+    "aviso_interno": "ANALISE INTERNA - NAO REPASSAR AO CLIENTE. O agente principal deve ler este objeto e escrever, por conta propria, uma resposta em prosa em portugues. Este objeto JSON nunca deve ser copiado nem repassado como resposta final.",
     "riskLevel": "baixo" | "medio" | "alto",
     "riskScore": 0-100,
     "signals": ["sinal identificado 1", "sinal identificado 2", ...],
     "recommendation": "aprovar_automatico" | "revisao_manual" | "negar_recomendado",
     "reasoning": "1 a 3 frases explicando a avaliação em português, sem repetir a lista de signals literalmente."
   }
+  O campo "aviso_interno" deve vir sempre primeiro, com esse texto exato, em toda resposta.
 
   Regras de decisão sugeridas (ajustáveis pelo agente principal, isto é só orientação):
   - riskScore 0-29 -> riskLevel baixo -> recommendation aprovar_automatico.
