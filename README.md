@@ -25,6 +25,8 @@ Não commite API keys. Use `.env` local e mantenha-o fora do Git.
 Mantenha o build do Render como `npm install` e o start como `node backend/server.js`.
 O script `postinstall` compila automaticamente o React. Após editar `frontend/src/`, execute `npm run build` para gerar novamente os arquivos servidos pelo Node.
 
+O chat via `/runs` seleciona explicitamente o ambiente **Live** do agente, consultando seu UUID na IBM e mantendo-o em cache durante o processo. Sem `environment_id`, a IBM executa em Draft, cujas métricas podem ficar fora das visualizações de produção. Publique o agente e seus colaboradores antes de usar a aplicação. Opcionalmente, configure `WO_ENVIRONMENT_ID` com o UUID do ambiente desejado; não use o texto `live` como identificador. Essa seleção não altera traces antigos nem controla o prazo de atualização do Control Plane.
+
 Para testar o andamento: `node --test backend/progress.test.js`.
 O teste de navegador `python tools/verify_chat.py` usa Playwright e python-dotenv e chama o agente real com as credenciais locais. `TEST_CHAT_URL` permite validar o site publicado.
 

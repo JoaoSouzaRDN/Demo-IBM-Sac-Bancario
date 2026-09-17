@@ -87,6 +87,25 @@ function agentRunsUrl() {
   if (!process.env.WO_API_URL || !process.env.WO_AGENT_ID) return null;
   return `${process.env.WO_API_URL.replace(/\/$/, "")}/v1/orchestrate/runs`;
 }
+const liveEnvironmentIds = new Map();
+async function runEnvironmentId(url, headers) {
+  if (process.env.WO_ENVIRONMENT_ID) return process.env.WO_ENVIRONMENT_ID;
+  const environmentsUrl = `${url.replace(/\/runs$/, "")}/agents/${encodeURIComponent(process.env.WO_AGENT_ID)}/environment`;
+  if (liveEnvironmentIds.has(environmentsUrl))
+    return liveEnvironmentIds.get(environmentsUrl);
+  const response = await fetch(environmentsUrl, {
+    headers,
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!response.ok)
+    throw new Error(`Agent environments HTTP ${response.status}`);
+  const environments = await response.json();
+  const live = environments.find((environment) => environment.name === "live");
+  if (!live?.id || live.current_version == null)
+    throw new Error("O agente precisa de uma versão publicada no ambiente Live.");
+  liveEnvironmentIds.set(environmentsUrl, live.id);
+  return live.id;
+}
 function extractRunText(value) {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -237,11 +256,13 @@ async function streamRun(body, res) {
     "Content-Type": "application/json",
     Authorization: `Bearer ${await getAuthToken()}`,
   };
+  const environmentId = await runEnvironmentId(url, headers);
   const created = await fetch(url, {
     method: "POST",
     headers,
     body: JSON.stringify({
       agent_id: process.env.WO_AGENT_ID,
+      environment_id: environmentId,
       thread_id: body.threadId || undefined,
       message: { role: "user", content: body.message },
       capture_logs: true,
