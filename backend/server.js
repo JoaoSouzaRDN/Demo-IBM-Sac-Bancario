@@ -136,12 +136,28 @@ function sendEvent(res, payload) {
 }
 const fraudRecommendationText = {
   aprovar_automatico:
-    "A contestação foi registrada e segue para a análise normal do banco.",
+    "Foi feita uma requisição de estorno dessa compra e ela já segue para a análise normal do banco.",
   revisao_manual:
-    "A contestação foi registrada, mas precisa passar por uma análise adicional antes da confirmação do reembolso.",
+    "Foi feita uma requisição de estorno dessa compra, mas ela precisa passar por uma análise adicional antes da confirmação do reembolso.",
   negar_recomendado:
-    "A contestação foi registrada, mas vai precisar de uma análise mais detalhada antes de qualquer confirmação de reembolso.",
+    "Foi feita uma requisição de estorno dessa compra, mas ela vai precisar de uma análise mais detalhada antes de qualquer confirmação de reembolso.",
 };
+// Deterministic override store: purchase id -> { status }. The LLM has
+// proven unreliable at the "customer just confirmed the contestation"
+// transition - it often never calls analise_fraude_reembolso at all and
+// just reports the purchase's raw baseline status instead (confirmed by
+// live testing across many prompt/model variations). Rather than keep
+// trying to prompt around a model behavior that doesn't respond to
+// prompting, this makes the actual business state (was this purchase
+// contested?) live in the backend, independent of what the LLM's own
+// tool-calling decided to do this turn.
+const compraOverrides = new Map();
+function applyCompraOverrides(records) {
+  return records.map((record) => {
+    const override = compraOverrides.get(record.id);
+    return override ? { ...record, ...override } : record;
+  });
+}
 // Safety net: sac_resposta is instructed to translate the fraud-analysis
 // collaborator's JSON into a natural sentence, but an LLM occasionally
 // echoes that raw JSON as its own reply instead. Detect that specific
@@ -212,6 +228,135 @@ function withRegisteredPurchaseFallback(reply, cases) {
     },
   ];
 }
+// Sends one message/send + polls tasks/get, same shape handleFoundryFraudeA2A
+// uses for Orchestrate's calls - reused here so the backend can call the
+// fraud collaborator on its own behalf, not only relay Orchestrate's calls.
+async function foundryA2ASendAndWait(text, headers) {
+  const requestId = crypto.randomUUID();
+  let result = await foundryA2ACall(
+    normalizeA2AMessage({
+      jsonrpc: "2.0",
+      id: requestId,
+      method: "message/send",
+      params: { message: { role: "user", parts: [{ kind: "text", text }] } },
+    }),
+    headers,
+  );
+  const task = result?.result;
+  if (task?.kind === "task" && task.id) {
+    for (let attempt = 0; attempt < 25; attempt += 1) {
+      const state = result?.result?.status?.state;
+      if (state === "completed" || state === "failed" || state === "canceled")
+        break;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      result = await foundryA2ACall(
+        { jsonrpc: "2.0", id: requestId, method: "tasks/get", params: { id: task.id } },
+        headers,
+      );
+    }
+  }
+  return result;
+}
+// Calls analise_fraude_reembolso directly (bypassing whether sac_resposta's
+// own tool-calling decided to do so) so the real assessment always happens
+// once a contestation is actually confirmed - see withCompraConfirmationOverride.
+async function analyzeFraudDirectly(purchase, motivo) {
+  if (!process.env.FOUNDRY_FRAUDE_API_KEY) return null;
+  const headers = {
+    "Content-Type": "application/json",
+    "api-key": process.env.FOUNDRY_FRAUDE_API_KEY,
+  };
+  const prompt =
+    `Analise esta contestação de compra do cliente cli-001. Dados da compra: ` +
+    `id ${purchase.id}, estabelecimento ${purchase.merchant}, valor R$ ${purchase.amount}, ` +
+    `data ${purchase.date}. Motivo informado pelo cliente: "${motivo}". ` +
+    `Responda no formato estruturado padrão.`;
+  try {
+    const result = await foundryA2ASendAndWait(prompt, headers);
+    const rawText = result?.result?.artifacts?.[0]?.parts?.[0]?.text;
+    if (!rawText) return null;
+    let parsed = JSON.parse(rawText.replace(/^```(?:json)?\s*|\s*```$/g, ""));
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      parsed.nao_repassar_ao_cliente_e_apenas_dado_interno
+    ) {
+      parsed = parsed.nao_repassar_ao_cliente_e_apenas_dado_interno;
+    }
+    return parsed;
+  } catch (e) {
+    console.error("analyzeFraudDirectly failed", e.message);
+    return null;
+  }
+}
+// Scans the thread for the exact pattern: an assistant reply asking to
+// confirm a compra contestation, followed by the customer's affirmative
+// reply that triggered the current (possibly broken) run. Returns the
+// customer's confirmation text (used as the "motivo" context) or null.
+function detectPendingCompraConfirmation(messages, runId) {
+  const idx = messages.findIndex(
+    (item) => item.role === "assistant" && item.context?.wxo_run_id === runId,
+  );
+  if (idx <= 0) return null;
+  let userText = null;
+  for (let i = idx - 1; i >= 0; i -= 1) {
+    if (messages[i].role === "user") {
+      userText = extractRunText(messages[i].content);
+      break;
+    }
+  }
+  if (!userText) return null;
+  const affirmative = /\b(sim|confirmo|confirma|pode seguir|isso mesmo|quero sim|correto)\b/i.test(
+    userText,
+  );
+  if (!affirmative) return null;
+  let priorReply = null;
+  for (let i = idx - 1; i >= 0; i -= 1) {
+    if (messages[i].role === "assistant") {
+      priorReply = extractRunText(messages[i].content);
+      break;
+    }
+  }
+  if (!priorReply) return null;
+  const normalized = priorReply
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase();
+  const isCompraConfirmQuestion =
+    normalized.includes("compra") &&
+    (normalized.includes("contestar") || normalized.includes("estorno")) &&
+    normalized.includes("confirm");
+  return isCompraConfirmQuestion ? userText : null;
+}
+// If the customer just confirmed a compra contestation but the LLM's own
+// reply/cases don't reflect a real registration (see module comment above
+// compraOverrides), call the fraud collaborator ourselves and build the
+// correct reply and case deterministically.
+async function withCompraConfirmationOverride(messages, runId, reply, cases) {
+  const alreadyRegistered = cases.some(
+    (item) => item.category === "compra" && item.status === "contested",
+  );
+  if (alreadyRegistered) return { reply, cases };
+  const motivo = detectPendingCompraConfirmation(messages, runId);
+  if (!motivo) return { reply, cases };
+  const purchase = mockDb.purchases[0];
+  if (!purchase) return { reply, cases };
+  const assessment = await analyzeFraudDirectly(purchase, motivo);
+  compraOverrides.set(purchase.id, { status: "contested" });
+  return {
+    reply:
+      fraudRecommendationText[assessment?.recommendation] ||
+      "Foi feita uma requisição de estorno dessa compra e ela já segue para análise.",
+    cases: [
+      {
+        id: purchase.id,
+        category: "compra",
+        title: `Compra contestada em ${purchase.merchant}`,
+        status: "contested",
+      },
+    ],
+  };
+}
 async function finalRunMessage(url, headers, threadId, runId) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const response = await fetch(
@@ -226,25 +371,31 @@ async function finalRunMessage(url, headers, threadId, runId) {
     );
     const text = extractRunText(message?.content);
     if (text) {
+      let reply, execution, cases;
       try {
         const structured = JSON.parse(
           text.replace(/^```(?:json)?\s*|\s*```$/g, ""),
         );
-        if (typeof structured.reply === "string" && structured.reply.trim())
-          return {
-            reply: sanitizeReply(structured.reply),
-            execution: structured.execution,
-            cases: withRegisteredPurchaseFallback(
-              structured.reply,
-              sanitizeCases(structured.cases),
-            ),
-          };
+        if (typeof structured.reply === "string" && structured.reply.trim()) {
+          reply = sanitizeReply(structured.reply);
+          execution = structured.execution;
+          cases = withRegisteredPurchaseFallback(
+            structured.reply,
+            sanitizeCases(structured.cases),
+          );
+        }
       } catch {}
-      const cleanReply = sanitizeReply(text);
-      return {
-        reply: cleanReply,
-        cases: withRegisteredPurchaseFallback(cleanReply, []),
-      };
+      if (reply === undefined) {
+        reply = sanitizeReply(text);
+        cases = withRegisteredPurchaseFallback(reply, []);
+      }
+      const overridden = await withCompraConfirmationOverride(
+        messages,
+        runId,
+        reply,
+        cases,
+      );
+      return { reply: overridden.reply, execution, cases: overridden.cases };
     }
     await new Promise((resolve) => setTimeout(resolve, 1000));
   }
@@ -517,11 +668,22 @@ http
       const result = lookupRecords(
         new URL(req.url, "http://localhost").searchParams,
       );
+      if (!result.error && result.category === "compra") {
+        result.records = applyCompraOverrides(result.records);
+      }
       res.writeHead(result.error ? 400 : 200, {
         "Content-Type": "application/json; charset=utf-8",
         "Cache-Control": "no-store",
       });
       return res.end(JSON.stringify(result));
+    }
+    if (req.method === "DELETE" && req.url.startsWith("/api/demo/case?")) {
+      const params = new URL(req.url, "http://localhost").searchParams;
+      if (params.get("category") === "compra" && params.get("id")) {
+        compraOverrides.delete(params.get("id"));
+      }
+      res.writeHead(204);
+      return res.end();
     }
     if (req.url === "/api/chat/stream" && req.method === "POST") {
       let b = "";

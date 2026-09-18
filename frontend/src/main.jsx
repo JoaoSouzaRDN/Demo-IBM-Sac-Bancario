@@ -492,6 +492,12 @@ function App() {
                     item.category !== deleting.category,
                 ),
               );
+              if (deleting.category === "compra") {
+                fetch(
+                  `/api/demo/case?id=${encodeURIComponent(deleting.id)}&category=compra`,
+                  { method: "DELETE" },
+                ).catch(() => {});
+              }
               setDeleting(null);
             }}
           />
