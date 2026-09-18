@@ -324,8 +324,11 @@ function detectPendingCompraConfirmation(messages, runId) {
     .toLowerCase();
   const isCompraConfirmQuestion =
     normalized.includes("compra") &&
-    (normalized.includes("contestar") || normalized.includes("estorno")) &&
-    normalized.includes("confirm");
+    (normalized.includes("contestar") ||
+      normalized.includes("contestacao") ||
+      normalized.includes("estorno")) &&
+    !normalized.includes("registrad") &&
+    !normalized.includes("segue para");
   return isCompraConfirmQuestion ? userText : null;
 }
 // If the customer just confirmed a compra contestation but the LLM's own
