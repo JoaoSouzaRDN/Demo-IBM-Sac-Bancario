@@ -293,10 +293,12 @@ async function analyzeFraudDirectly(purchase, motivo) {
 // confirm a compra contestation, followed by the customer's affirmative
 // reply that triggered the current (possibly broken) run. Returns the
 // customer's confirmation text (used as the "motivo" context) or null.
+let lastDetectDebug = null;
 function detectPendingCompraConfirmation(messages, runId) {
   const idx = messages.findIndex(
     (item) => item.role === "assistant" && item.context?.wxo_run_id === runId,
   );
+  lastDetectDebug = { runId, idx, messageCount: messages.length, roles: messages.map((m) => m.role) };
   if (idx <= 0) return null;
   let userText = null;
   for (let i = idx - 1; i >= 0; i -= 1) {
@@ -305,10 +307,12 @@ function detectPendingCompraConfirmation(messages, runId) {
       break;
     }
   }
+  lastDetectDebug.userText = userText;
   if (!userText) return null;
   const affirmative = /\b(sim|confirmo|confirma|pode seguir|isso mesmo|quero sim|correto)\b/i.test(
     userText,
   );
+  lastDetectDebug.affirmative = affirmative;
   if (!affirmative) return null;
   let priorReply = null;
   for (let i = idx - 1; i >= 0; i -= 1) {
@@ -317,6 +321,7 @@ function detectPendingCompraConfirmation(messages, runId) {
       break;
     }
   }
+  lastDetectDebug.priorReply = priorReply;
   if (!priorReply) return null;
   const normalize = (value) =>
     (value || "")
@@ -331,6 +336,7 @@ function detectPendingCompraConfirmation(messages, runId) {
     priorNormalized.includes("compra") &&
     !priorNormalized.includes("registrad") &&
     !priorNormalized.includes("segue para");
+  lastDetectDebug.priorLooksLikeCompraQuestion = priorLooksLikeCompraQuestion;
   if (!priorLooksLikeCompraQuestion) return null;
   // Confirm the broader exchange is really about contesting a purchase (not
   // some other compra question) by scanning a wider window of recent turns
@@ -348,6 +354,8 @@ function detectPendingCompraConfirmation(messages, runId) {
     windowText.includes("contestacao") ||
     windowText.includes("estorno") ||
     windowText.includes("nao reconhec");
+  lastDetectDebug.windowText = windowText;
+  lastDetectDebug.isAboutContestation = isAboutContestation;
   return isAboutContestation ? userText : null;
 }
 // If the customer just confirmed a compra contestation but the LLM's own
@@ -739,6 +747,10 @@ http
         "Cache-Control": "no-store",
       });
       return res.end(JSON.stringify(result));
+    }
+    if (req.method === "GET" && req.url === "/api/demo/debug") {
+      res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
+      return res.end(JSON.stringify(lastDetectDebug || {}));
     }
     if (req.method === "DELETE" && req.url.startsWith("/api/demo/case?")) {
       const params = new URL(req.url, "http://localhost").searchParams;
