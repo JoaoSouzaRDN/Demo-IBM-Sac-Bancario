@@ -355,10 +355,13 @@ function detectPendingCompraConfirmation(messages, runId) {
 // compraOverrides), call the fraud collaborator ourselves and build the
 // correct reply and case deterministically.
 async function withCompraConfirmationOverride(messages, runId, reply, cases, progress) {
-  const alreadyRegistered = cases.some(
-    (item) => item.category === "compra" && item.status === "contested",
-  );
-  if (alreadyRegistered) return { reply, cases };
+  // Deliberately does not trust cases/reply to decide whether the LLM
+  // "already" registered this correctly: it has been observed producing
+  // the exact expected wording/case shape without a real tool_call behind
+  // it (see module comment above compraOverrides). detectPendingCompraConfirmation
+  // is itself the real gate - it only matches the immediately-prior turn
+  // when that turn still looks like an open question, not an already
+  // completed registration.
   const motivo = detectPendingCompraConfirmation(messages, runId);
   if (!motivo) return { reply, cases };
   const purchase = mockDb.purchases[0];
