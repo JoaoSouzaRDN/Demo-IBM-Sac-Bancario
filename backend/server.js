@@ -340,11 +340,20 @@ function detectPendingCompraConfirmation(messages, runId) {
       .replace(/[̀-ͯ]/g, "")
       .toLowerCase();
   const priorNormalized = normalize(priorReply);
-  // The immediately-prior turn must at least be about a compra and read
-  // like it's asking the customer something (wording varies a lot: "Confirma
-  // que quer contestar?", "É essa compra?", "Posso seguir com o estorno?").
+  // The immediately-prior turn must actually SHOW the purchase it found
+  // (merchant name or a R$ amount) - not just ask a generic question. Both
+  // "Qual foi o valor e a data dessa compra?" (step 0, no purchase found
+  // yet) and "Encontrei esta compra... confirma?" (step 1, real data shown)
+  // mention "compra" and neither says "registrad"/"segue para", so without
+  // this check step 0's own answer ("239,90 no dia 07/09") was being
+  // mistaken for a confirmation and skipping the actual lookup/confirm step.
+  const purchase = mockDb.purchases[0];
+  const priorShowsFoundPurchase =
+    /r\$\s*\d/.test(priorNormalized) ||
+    (purchase && priorNormalized.includes(purchase.merchant.toLowerCase()));
   const priorLooksLikeCompraQuestion =
     priorNormalized.includes("compra") &&
+    priorShowsFoundPurchase &&
     !priorNormalized.includes("registrad") &&
     !priorNormalized.includes("segue para");
   if (!priorLooksLikeCompraQuestion) return null;
