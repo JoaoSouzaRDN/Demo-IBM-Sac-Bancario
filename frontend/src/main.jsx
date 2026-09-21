@@ -325,7 +325,7 @@ function App() {
                           className="save-case"
                           key={`${item.category}:${item.id}`}
                           disabled={exists}
-                          onClick={() =>
+                          onClick={() => {
                             setSaved((previous) => [
                               ...previous.filter(
                                 (stored) =>
@@ -333,8 +333,22 @@ function App() {
                                   stored.category !== item.category,
                               ),
                               item,
-                            ])
-                          }
+                            ]);
+                            if (
+                              item.category === "compra" &&
+                              item.status === "contested"
+                            ) {
+                              fetch("/api/demo/case", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  id: item.id,
+                                  category: item.category,
+                                  status: item.status,
+                                }),
+                              }).catch(() => {});
+                            }
+                          }}
                         >
                           {exists ? "✓ Consulta salva" : "＋ Salvar consulta"} ·{" "}
                           {statusLabel(item.status)}

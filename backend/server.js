@@ -410,7 +410,12 @@ async function withCompraConfirmationOverride(messages, runId, reply, cases, pro
       },
     },
   });
-  compraOverrides.set(purchase.id, { status: "contested" });
+  // Deliberately does NOT persist to compraOverrides here: this demo only
+  // treats a compra as "contested" going forward if the customer actually
+  // clicks "Salvar consulta" for it (see POST /api/demo/case) - the
+  // reply/case below still reflect the real analysis for this reply either
+  // way, this only controls whether a *future, fresh* conversation finds it
+  // already contested.
   return {
     reply:
       fraudRecommendationText[assessment?.recommendation] ||
@@ -754,6 +759,28 @@ http
       }
       res.writeHead(204);
       return res.end();
+    }
+    // Persists the "contested" status only once the customer actually saves
+    // the consultation - see the comment in withCompraConfirmationOverride.
+    // Never reaches production; this whole override layer is demo-only.
+    if (req.method === "POST" && req.url === "/api/demo/case") {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", () => {
+        try {
+          const body = JSON.parse(b || "{}");
+          if (
+            body.category === "compra" &&
+            body.id &&
+            body.status === "contested"
+          ) {
+            compraOverrides.set(body.id, { status: "contested" });
+          }
+        } catch {}
+        res.writeHead(204);
+        res.end();
+      });
+      return;
     }
     if (req.url === "/api/chat/stream" && req.method === "POST") {
       let b = "";
