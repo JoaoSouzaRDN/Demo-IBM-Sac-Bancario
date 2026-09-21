@@ -318,18 +318,37 @@ function detectPendingCompraConfirmation(messages, runId) {
     }
   }
   if (!priorReply) return null;
-  const normalized = priorReply
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase();
-  const isCompraConfirmQuestion =
-    normalized.includes("compra") &&
-    (normalized.includes("contestar") ||
-      normalized.includes("contestacao") ||
-      normalized.includes("estorno")) &&
-    !normalized.includes("registrad") &&
-    !normalized.includes("segue para");
-  return isCompraConfirmQuestion ? userText : null;
+  const normalize = (value) =>
+    (value || "")
+      .normalize("NFD")
+      .replace(/[̀-ͯ]/g, "")
+      .toLowerCase();
+  const priorNormalized = normalize(priorReply);
+  // The immediately-prior turn must at least be about a compra and read
+  // like it's asking the customer something (wording varies a lot: "Confirma
+  // que quer contestar?", "É essa compra?", "Posso seguir com o estorno?").
+  const priorLooksLikeCompraQuestion =
+    priorNormalized.includes("compra") &&
+    !priorNormalized.includes("registrad") &&
+    !priorNormalized.includes("segue para");
+  if (!priorLooksLikeCompraQuestion) return null;
+  // Confirm the broader exchange is really about contesting a purchase (not
+  // some other compra question) by scanning a wider window of recent turns
+  // for that intent, since the exact wording of any single turn is
+  // unpredictable.
+  const windowStart = Math.max(0, idx - 6);
+  const windowText = normalize(
+    messages
+      .slice(windowStart, idx)
+      .map((item) => extractRunText(item.content))
+      .join(" "),
+  );
+  const isAboutContestation =
+    windowText.includes("contestar") ||
+    windowText.includes("contestacao") ||
+    windowText.includes("estorno") ||
+    windowText.includes("nao reconhec");
+  return isAboutContestation ? userText : null;
 }
 // If the customer just confirmed a compra contestation but the LLM's own
 // reply/cases don't reflect a real registration (see module comment above
