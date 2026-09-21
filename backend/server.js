@@ -354,7 +354,7 @@ function detectPendingCompraConfirmation(messages, runId) {
 // reply/cases don't reflect a real registration (see module comment above
 // compraOverrides), call the fraud collaborator ourselves and build the
 // correct reply and case deterministically.
-async function withCompraConfirmationOverride(messages, runId, reply, cases) {
+async function withCompraConfirmationOverride(messages, runId, reply, cases, progress) {
   const alreadyRegistered = cases.some(
     (item) => item.category === "compra" && item.status === "contested",
   );
@@ -363,7 +363,43 @@ async function withCompraConfirmationOverride(messages, runId, reply, cases) {
   if (!motivo) return { reply, cases };
   const purchase = mockDb.purchases[0];
   if (!purchase) return { reply, cases };
+  // This call happens outside Orchestrate's own event stream (see module
+  // comment above compraOverrides), so the progress panel would otherwise
+  // never show the fraud-analysis step even though it genuinely runs here.
+  // Feed synthetic events through the same consume() a real tool_call would
+  // produce, so "Analisando risco da contestação" appears for real.
+  const callId = `compra-override-${crypto.randomUUID()}`;
+  progress?.consume({
+    id: callId,
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            tool_calls: [
+              { name: "chat_with_collaborator_analise_fraude_reembolso", id: callId },
+            ],
+          },
+        ],
+      },
+    },
+  });
   const assessment = await analyzeFraudDirectly(purchase, motivo);
+  progress?.consume({
+    id: `${callId}-done`,
+    event: "run.step.delta",
+    data: {
+      delta: {
+        step_details: [
+          {
+            type: "tool_response",
+            name: "chat_with_collaborator_analise_fraude_reembolso",
+            tool_call_id: callId,
+          },
+        ],
+      },
+    },
+  });
   compraOverrides.set(purchase.id, { status: "contested" });
   return {
     reply:
@@ -379,7 +415,7 @@ async function withCompraConfirmationOverride(messages, runId, reply, cases) {
     ],
   };
 }
-async function finalRunMessage(url, headers, threadId, runId) {
+async function finalRunMessage(url, headers, threadId, runId, progress) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const response = await fetch(
       `${url.replace(/\/runs$/, "")}/threads/${encodeURIComponent(threadId)}/messages`,
@@ -416,6 +452,7 @@ async function finalRunMessage(url, headers, threadId, runId) {
         runId,
         reply,
         cases,
+        progress,
       );
       return { reply: overridden.reply, execution, cases: overridden.cases };
     }
@@ -507,6 +544,7 @@ async function streamRun(body, res) {
           headers,
           run.thread_id || body.threadId,
           runId,
+          progress,
         );
         progress.finish();
         sendEvent(res, { event: "run.completed", ...answer });
