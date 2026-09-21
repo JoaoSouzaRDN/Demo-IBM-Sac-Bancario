@@ -293,18 +293,27 @@ async function analyzeFraudDirectly(purchase, motivo) {
 // confirm a compra contestation, followed by the customer's affirmative
 // reply that triggered the current (possibly broken) run. Returns the
 // customer's confirmation text (used as the "motivo" context) or null.
-function detectPendingCompraConfirmation(messages, runId) {
-  const idx = messages.findIndex(
+function findAssistantMessageIndex(messages, runId) {
+  return messages.findIndex(
     (item) => item.role === "assistant" && item.context?.wxo_run_id === runId,
   );
-  if (idx <= 0) return null;
-  let userText = null;
+}
+function findPriorUserText(messages, idx) {
   for (let i = idx - 1; i >= 0; i -= 1) {
-    if (messages[i].role === "user") {
-      userText = extractRunText(messages[i].content);
-      break;
-    }
+    if (messages[i].role === "user") return extractRunText(messages[i].content);
   }
+  return null;
+}
+function findPriorAssistantText(messages, idx) {
+  for (let i = idx - 1; i >= 0; i -= 1) {
+    if (messages[i].role === "assistant") return extractRunText(messages[i].content);
+  }
+  return null;
+}
+function detectPendingCompraConfirmation(messages, runId) {
+  const idx = findAssistantMessageIndex(messages, runId);
+  if (idx <= 0) return null;
+  const userText = findPriorUserText(messages, idx);
   if (!userText) return null;
   // Whitelisting exact confirmation phrasing kept missing real replies
   // ("essa mesma, não fui eu quem realizei essa compra" has none of "sim",
@@ -430,6 +439,119 @@ async function withCompraConfirmationOverride(messages, runId, reply, cases, pro
     ],
   };
 }
+// Deterministic safety net for "ver minhas parcelas": the LLM has been seen
+// listing item names without values, or without the requested pipe/line
+// format, even with the exact instruction that once worked. Whenever the
+// triggering message is clearly the general "show my parcelas" request
+// (not a follow-up about one specific item), replace the reply with a
+// table built straight from mockDb - always correct, never a formatting
+// gamble. cases stays [] here regardless (parcela is never a real case).
+function withParcelasOverride(messages, runId, reply, cases) {
+  const idx = findAssistantMessageIndex(messages, runId);
+  if (idx <= 0) return { reply, cases };
+  const userText = findPriorUserText(messages, idx);
+  if (!userText || !/\bparcelas?\b/i.test(userText)) return { reply, cases };
+  const mentionsSpecificItem = mockDb.loans.some((loan) =>
+    userText.toLowerCase().includes(loan.description.toLowerCase()),
+  );
+  if (mentionsSpecificItem) return { reply, cases };
+  const formatCurrency = (value) => `R$ ${value.toFixed(2).replace(".", ",")}`;
+  const lines = mockDb.loans.map(
+    (loan) =>
+      `${loan.description} | ${loan.installment}/${loan.totalInstallments} | ${formatCurrency(loan.amount)}`,
+  );
+  const total = mockDb.cards[0]?.invoiceTotal;
+  const totalLine =
+    typeof total === "number" ? `Total da fatura: ${formatCurrency(total)}` : null;
+  return {
+    reply: ["Encontrei estas parcelas:", ...lines, totalLine]
+      .filter(Boolean)
+      .join("\n"),
+    cases: [],
+  };
+}
+// Deterministic safety net for the cadastro-update confirmation, mirroring
+// withCompraConfirmationOverride: the LLM has been seen hesitating or
+// leaking untranslated status ("needs_review") right after the customer
+// confirms. Detect the pending confirmation and build the correct
+// reply/case ourselves rather than trust that turn's own output.
+// Scans the customer's OWN messages (never the assistant's, which is the
+// unreliable part) for a field name plus a plausible new value for it.
+// Independent of how the LLM phrases anything.
+function findCadastroFieldAndValue(messages, idx) {
+  let field = null;
+  let value = null;
+  for (let i = 0; i < idx; i += 1) {
+    if (messages[i].role !== "user") continue;
+    const text = extractRunText(messages[i].content) || "";
+    const lower = text.toLowerCase();
+    if (!field) {
+      if (/\btelefone\b/.test(lower)) field = "telefone";
+      else if (/\be-?mail\b/.test(lower)) field = "e-mail";
+    }
+    if (field === "telefone") {
+      const phoneMatch = text.match(/\(?\d{2}\)?\s?\d{4,5}-?\d{4}/);
+      if (phoneMatch) value = phoneMatch[0];
+    } else if (field === "e-mail") {
+      const emailMatch = text.match(/[\w.+-]+@[\w-]+\.[\w.-]+/);
+      if (emailMatch) value = emailMatch[0];
+    }
+  }
+  return { field, value };
+}
+// The LLM has been seen not just wording the confirmation question
+// unpredictably (like compra) but skipping it, hallucinating an "app"/
+// "Internet Banking" redirect that doesn't exist, or refusing to register
+// after noticing the mock's underlying value never changes. Rather than
+// keep reacting to new failure shapes, the backend now owns the whole
+// ask-confirm -> register state machine here: the LLM's only job is
+// gathering which field and what new value (2 simple questions it already
+// handles fine), and findCadastroFieldAndValue reads that straight from the
+// customer's own messages instead of trusting the assistant's phrasing.
+// Our own overridden reply text never actually lands in Orchestrate's
+// thread history (it's only what we send back to our frontend) - so a
+// later turn can't detect "did we already ask to confirm?" by reading the
+// prior assistant message back from /threads/.../messages, that always
+// shows the LLM's own original (pre-override) text. Track the pending
+// confirmation ourselves instead, per thread.
+const cadastroPending = new Map();
+function withCadastroOverride(threadId, messages, runId, reply, cases) {
+  const idx = findAssistantMessageIndex(messages, runId);
+  if (idx <= 0) return { reply, cases };
+  const userText = findPriorUserText(messages, idx);
+  if (!userText) return { reply, cases };
+  const pending = cadastroPending.get(threadId);
+  if (pending) {
+    cadastroPending.delete(threadId);
+    const isExplicitRejection =
+      /\b(nao quero|não quero|cancelar|desistir)\b/i.test(userText) ||
+      /^\s*(nao|não)\s*[.!]?\s*$/i.test(userText);
+    if (isExplicitRejection) {
+      return { reply: "Sem problemas, não vou seguir com essa atualização.", cases: [] };
+    }
+    const profile = mockDb.profiles[0];
+    return {
+      reply: `Pronto, registrei a solicitação de atualização do seu ${pending.field} e o cadastro segue em análise.`,
+      cases: profile
+        ? [
+            {
+              id: profile.id,
+              category: "perfil",
+              title: `Atualização de ${pending.field}`,
+              status: profile.status,
+            },
+          ]
+        : [],
+    };
+  }
+  const { field, value } = findCadastroFieldAndValue(messages, idx);
+  if (!field || !value) return { reply, cases };
+  cadastroPending.set(threadId, { field, value });
+  return {
+    reply: `Confirma que quer atualizar seu ${field} para ${value}?`,
+    cases: [],
+  };
+}
 async function finalRunMessage(url, headers, threadId, runId, progress) {
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const response = await fetch(
@@ -462,12 +584,25 @@ async function finalRunMessage(url, headers, threadId, runId, progress) {
         reply = sanitizeReply(text);
         cases = withRegisteredPurchaseFallback(reply, []);
       }
-      const overridden = await withCompraConfirmationOverride(
+      let overridden = await withCompraConfirmationOverride(
         messages,
         runId,
         reply,
         cases,
         progress,
+      );
+      overridden = withParcelasOverride(
+        messages,
+        runId,
+        overridden.reply,
+        overridden.cases,
+      );
+      overridden = withCadastroOverride(
+        threadId,
+        messages,
+        runId,
+        overridden.reply,
+        overridden.cases,
       );
       return { reply: overridden.reply, execution, cases: overridden.cases };
     }
