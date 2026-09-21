@@ -306,10 +306,17 @@ function detectPendingCompraConfirmation(messages, runId) {
     }
   }
   if (!userText) return null;
-  const affirmative = /\b(sim|confirmo|confirma|pode seguir|isso mesmo|quero sim|correto)\b/i.test(
-    userText,
-  );
-  if (!affirmative) return null;
+  // Whitelisting exact confirmation phrasing kept missing real replies
+  // ("essa mesma, não fui eu quem realizei essa compra" has none of "sim",
+  // "confirmo" etc.). The surrounding gates below (prior turn must be a
+  // pending compra question, recent window must be about a contestation)
+  // already narrow this enough that any reply here is almost certainly a
+  // continuation - so only bail out on an explicit rejection instead.
+  const isExplicitRejection =
+    /\b(nao quero|não quero|cancelar|desistir|deixa pra la|deixa para la)\b/i.test(
+      userText,
+    ) || /^\s*(nao|não)\s*[.!]?\s*$/i.test(userText);
+  if (isExplicitRejection) return null;
   let priorReply = null;
   for (let i = idx - 1; i >= 0; i -= 1) {
     if (messages[i].role === "assistant") {
