@@ -10,7 +10,7 @@ const toolLabels = {
   // need their own entry here to get a labeled step at all. The label is
   // deliberately platform-agnostic: which technology hosts a collaborator
   // is an implementation detail, not something to surface to the customer.
-  chat_with_collaborator_analise_fraude_reembolso: "Analisando risco da contestação",
+  chat_with_collaborator_analise_fraude_reembolso: "Consultando o agente de análise de fraude",
 };
 
 // Only lifecycle and tool metadata are exposed. Tool arguments and thinking stay private.

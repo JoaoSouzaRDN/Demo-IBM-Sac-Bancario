@@ -275,32 +275,23 @@ export function LiveProgress({ history = [], steps, busy, error }) {
               </li>
             );
           })}
-          {orderedSteps(steps).map((step) => {
-            const isFraudStep = step.label === "Analisando risco da contestação";
-            return (
-              <li key={step.id} data-flip-key={step.id} className={`step ${step.status}`}>
-                <span className="step-light">
-                  {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
+          {orderedSteps(steps).map((step) => (
+            <li key={step.id} data-flip-key={step.id} className={`step ${step.status}`}>
+              <span className="step-light">
+                {step.status === "done" ? <Icon check /> : step.status === "error" ? "!" : null}
+              </span>
+              <span>
+                <span
+                  className={`step-label ${step.status === "active" ? "shimmer-text" : ""}`}
+                >
+                  {step.label}
                 </span>
-                <span>
-                  <span
-                    className={`step-label ${step.status === "active" ? "shimmer-text" : ""}`}
-                  >
-                    {step.label}
-                  </span>
-                  {isFraudStep && step.status === "active" && (
-                    <small>Chamando agente externo via protocolo A2A (Azure AI Foundry)…</small>
-                  )}
-                  {isFraudStep && step.status === "done" && (
-                    <small>Parecer recebido do agente externo (Azure AI Foundry)</small>
-                  )}
-                  {!isFraudStep && step.status === "active" && <small>Em andamento…</small>}
-                  {!isFraudStep && step.status === "done" && <small>Concluído</small>}
-                  {step.status === "error" && <small>Falhou</small>}
-                </span>
-              </li>
-            );
-          })}
+                {step.status === "active" && <small>Em andamento…</small>}
+                {step.status === "done" && <small>Concluído</small>}
+                {step.status === "error" && <small>Falhou</small>}
+              </span>
+            </li>
+          ))}
         </ol>
       )}
       </div>

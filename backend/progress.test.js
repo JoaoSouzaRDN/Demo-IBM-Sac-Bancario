@@ -91,7 +91,7 @@ test("an unrecognized current_agent (e.g. the external collaborator's own name) 
   });
   const fraudSteps = updates
     .at(-1)
-    .steps.filter((step) => step.label === "Analisando risco da contestação");
+    .steps.filter((step) => step.label === "Consultando o agente de análise de fraude");
   assert.equal(fraudSteps.length, 1);
 });
 
@@ -123,7 +123,7 @@ test("external fraud-analysis collaborator is labeled as a tool call, not a curr
   });
   assert.equal(
     updates.at(-1).steps.at(-1).label,
-    "Analisando risco da contestação",
+    "Consultando o agente de análise de fraude",
   );
   assert.equal(updates.at(-1).steps.at(-1).status, "active");
   progress.consume({
@@ -191,7 +191,7 @@ test("a retried collaborator call reuses the same step instead of duplicating it
   progress.consume(response(2));
   const fraudSteps = updates
     .at(-1)
-    .steps.filter((step) => step.label === "Analisando risco da contestação");
+    .steps.filter((step) => step.label === "Consultando o agente de análise de fraude");
   assert.equal(fraudSteps.length, 1);
   assert.equal(fraudSteps[0].status, "done");
 });
