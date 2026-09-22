@@ -860,62 +860,6 @@ async function handleFoundryFraudeA2A(body, res) {
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify(result));
 }
-// Rough token-count estimate (chars/4) used only because Foundry's A2A
-// response never carries real usage data - there is no token accounting
-// anywhere in that response to relay. This is a local approximation, not a
-// real count from either model.
-function estimateTokens(text) {
-  return Math.max(1, Math.ceil((text || "").length / 4));
-}
-// OpenAI chat-completions-shaped adapter for the same Foundry call, used to
-// test whether registering this collaborator under provider "external_chat"
-// (plain chat completions, no A2A) makes Orchestrate pick up a usage/token
-// figure for the external hop - A2A's task/artifact shape never carries one.
-async function handleFoundryFraudeChat(body, res) {
-  if (!process.env.FOUNDRY_FRAUDE_API_KEY) {
-    res.writeHead(502, { "Content-Type": "application/json" });
-    return res.end(JSON.stringify({ error: { message: "FOUNDRY_FRAUDE_API_KEY not configured" } }));
-  }
-  const messages = Array.isArray(body?.messages) ? body.messages : [];
-  const lastUser = [...messages].reverse().find((m) => m.role === "user");
-  const inputText = lastUser?.content || "";
-  const headers = {
-    "Content-Type": "application/json",
-    "api-key": process.env.FOUNDRY_FRAUDE_API_KEY,
-  };
-  try {
-    const result = await foundryA2ASendAndWait(inputText, headers);
-    const rawText = result?.result?.artifacts?.[0]?.parts?.[0]?.text;
-    if (!rawText) throw new Error("Foundry retornou sem texto");
-    const promptTokens = estimateTokens(inputText);
-    const completionTokens = estimateTokens(rawText);
-    res.writeHead(200, { "Content-Type": "application/json" });
-    res.end(
-      JSON.stringify({
-        id: `chatcmpl-${crypto.randomUUID()}`,
-        object: "chat.completion",
-        created: Math.floor(Date.now() / 1000),
-        model: "analise-fraude-reembolso-foundry",
-        choices: [
-          {
-            index: 0,
-            message: { role: "assistant", content: rawText },
-            finish_reason: "stop",
-          },
-        ],
-        usage: {
-          prompt_tokens: promptTokens,
-          completion_tokens: completionTokens,
-          total_tokens: promptTokens + completionTokens,
-        },
-      }),
-    );
-  } catch (e) {
-    console.error("Foundry chat-completions proxy error", e.message);
-    res.writeHead(502, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: { message: e.message } }));
-  }
-}
 // ---------------------------------------------------------------------------
 http
   .createServer((req, res) => {
@@ -935,20 +879,6 @@ http
               error: { code: -32000, message: e.message },
             }),
           );
-        }
-      });
-      return;
-    }
-    if (req.url === "/api/foundry-fraude/chat" && req.method === "POST") {
-      let b = "";
-      req.on("data", (c) => (b += c));
-      req.on("end", async () => {
-        try {
-          await handleFoundryFraudeChat(JSON.parse(b), res);
-        } catch (e) {
-          console.error("Foundry chat proxy error", e.message);
-          if (!res.headersSent) res.writeHead(502, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ error: { message: e.message } }));
         }
       });
       return;
