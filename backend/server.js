@@ -234,9 +234,9 @@ function withRegisteredPurchaseFallback(reply, cases) {
     },
   ];
 }
-// Sends one message/send + polls tasks/get, same shape handleFoundryFraudeA2A
-// uses for Orchestrate's calls - reused here so the backend can call the
-// fraud collaborator on its own behalf, not only relay Orchestrate's calls.
+// Sends one message/send + polls tasks/get against the real Foundry A2A
+// endpoint - shared by the deterministic override (analyzeFraudDirectly)
+// and the chat-completions adapter (handleFoundryFraudeChat) below.
 async function foundryA2ASendAndWait(text, headers) {
   const requestId = crypto.randomUUID();
   let result = await foundryA2ACall(
@@ -889,52 +889,13 @@ async function foundryA2ACall(body, headers) {
   return response.json();
 }
 
-async function handleFoundryFraudeA2A(body, res) {
-  if (!process.env.FOUNDRY_FRAUDE_API_KEY) {
-    res.writeHead(502, { "Content-Type": "application/json" });
-    return res.end(
-      JSON.stringify({
-        jsonrpc: "2.0",
-        id: body?.id ?? null,
-        error: { code: -32000, message: "FOUNDRY_FRAUDE_API_KEY not configured" },
-      }),
-    );
-  }
-  const headers = {
-    "Content-Type": "application/json",
-    "api-key": process.env.FOUNDRY_FRAUDE_API_KEY,
-  };
-  const normalized = normalizeA2AMessage(body);
-  let result = await foundryA2ACall(normalized, headers);
-  const requestId = body?.id ?? null;
-  const task = result?.result;
-  if (task?.kind === "task" && task.id) {
-    // Poll on the caller's behalf until the task settles, so a single
-    // JSON-RPC round trip is enough for Orchestrate.
-    for (let attempt = 0; attempt < 25; attempt += 1) {
-      const state = result?.result?.status?.state;
-      if (state === "completed" || state === "failed" || state === "canceled")
-        break;
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      result = await foundryA2ACall(
-        {
-          jsonrpc: "2.0",
-          id: requestId,
-          method: "tasks/get",
-          params: { id: task.id },
-        },
-        headers,
-      );
-    }
-  }
-  if (result && typeof result === "object") result.id = requestId;
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(result));
-}
-// OpenAI chat-completions-shaped adapter for the same Foundry call, used to
-// test whether registering this collaborator under provider "external_chat"
-// (plain chat completions, no A2A) makes Orchestrate pick up a usage/token
-// figure for the external hop - A2A's task/artifact shape never carries one.
+// OpenAI chat-completions-shaped adapter for the Foundry fraud call. This is
+// the endpoint the analise_fraude_reembolso collaborator is actually
+// registered under in Orchestrate (provider: external_chat) - the JSON-RPC/
+// A2A-shaped variant of this handler was removed once this replaced it;
+// foundryA2ACall/normalizeA2AMessage/foundryA2ASendAndWait below still speak
+// A2A because that's the protocol the real Foundry endpoint requires, it's
+// just no longer exposed as its own HTTP route.
 async function handleFoundryFraudeChat(body, res) {
   if (!process.env.FOUNDRY_FRAUDE_API_KEY) {
     res.writeHead(502, { "Content-Type": "application/json" });
@@ -983,26 +944,6 @@ async function handleFoundryFraudeChat(body, res) {
 // ---------------------------------------------------------------------------
 http
   .createServer((req, res) => {
-    if (req.url === "/api/foundry-fraude/a2a" && req.method === "POST") {
-      let b = "";
-      req.on("data", (c) => (b += c));
-      req.on("end", async () => {
-        try {
-          await handleFoundryFraudeA2A(JSON.parse(b), res);
-        } catch (e) {
-          console.error("Foundry A2A proxy error", e.message);
-          if (!res.headersSent) res.writeHead(502, { "Content-Type": "application/json" });
-          res.end(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              id: null,
-              error: { code: -32000, message: e.message },
-            }),
-          );
-        }
-      });
-      return;
-    }
     if (req.url === "/api/foundry-fraude/chat" && req.method === "POST") {
       let b = "";
       req.on("data", (c) => (b += c));

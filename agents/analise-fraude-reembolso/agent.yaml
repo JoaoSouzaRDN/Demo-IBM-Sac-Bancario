@@ -20,18 +20,27 @@ orchestrate:
   # looser AgentCard/A2A shape than what Foundry returns. Imported instead
   # from a hand-written external-agent spec via `orchestrate agents import`.
   imported_via: "orchestrate agents import -f <external-agent-spec.yaml>"
-  external_agent_api_url: "https://demo-ibm-sac-bancario.onrender.com/api/foundry-fraude/a2a"
+  provider: external_chat
+  external_agent_api_url: "https://demo-ibm-sac-bancario.onrender.com/api/foundry-fraude/chat"
   note: >-
-    api_url points at the backend/server.js adapter
-    (POST /api/foundry-fraude/a2a), not Foundry directly. Orchestrate's
-    hosted A2A client sends message parts with the pre-0.3 `type`
-    discriminator and omits `messageId`; Foundry's endpoint strictly
-    requires A2A 0.3's `kind` discriminator and `messageId`, and answers
-    message/send asynchronously (submitted -> completed) with no polling
-    on Orchestrate's side. The adapter normalizes the payload, forwards it
-    to Foundry with FOUNDRY_FRAUDE_API_KEY (Render env var, never
-    committed), and polls tasks/get so the call still looks synchronous
-    to Orchestrate. The reasoning itself always runs in Foundry.
+    api_url points at the backend/server.js chat-completions adapter
+    (POST /api/foundry-fraude/chat, handleFoundryFraudeChat), registered
+    under provider external_chat (plain chat completions, not A2A). This
+    is what Orchestrate calls when sac_resposta decides to invoke the
+    collaborator natively. Internally the adapter still talks A2A to the
+    real Foundry endpoint - Orchestrate's hosted A2A client sends message
+    parts with the pre-0.3 `type` discriminator and omits `messageId`,
+    while Foundry's endpoint strictly requires A2A 0.3's `kind`
+    discriminator and `messageId`, and answers message/send
+    asynchronously (submitted -> completed) with no polling on
+    Orchestrate's side - so a raw A2A passthrough for Orchestrate was
+    never viable either way. The adapter normalizes the payload, forwards
+    it to Foundry with FOUNDRY_FRAUDE_API_KEY (Render env var, never
+    committed), and polls tasks/get so the call still looks synchronous.
+    The customer-facing flow never depends on this path at all: it calls
+    the same underlying A2A functions directly from the backend
+    (analyzeFraudDirectly), bypassing Orchestrate's collaborator
+    mechanism entirely for reliability - see README.md.
   collaborator_of:
     - sac_resposta
 instructions_for_foundry: |
@@ -68,21 +77,13 @@ instructions_for_foundry: |
     combinado, produto não recebido, compra duplicada).
   - Padrão de gasto e comportamento compatível com o histórico do cliente.
 
-  Formato de saída OBRIGATÓRIO — responda somente com este JSON, sem texto fora dele.
-  Note que toda a avaliação fica DENTRO da chave "nao_repassar_ao_cliente_e_apenas_dado_interno":
-  isso é deliberado, porque quem te chama é um outro agente de IA (não um programa) que
-  tende a copiar e colar objetos JSON prontos como se fossem a resposta final ao cliente
-  bancário. Ao aninhar sua avaliação assim, você ajuda esse outro agente a perceber que
-  isto NUNCA é a resposta final — é só o seu parecer interno, que ele deve ler e reescrever
-  com as próprias palavras, em prosa, em português, antes de responder ao cliente.
+  Formato de saída OBRIGATÓRIO — responda somente com este JSON, sem texto fora dele:
   {
-    "nao_repassar_ao_cliente_e_apenas_dado_interno": {
-      "riskLevel": "baixo" | "medio" | "alto",
-      "riskScore": 0-100,
-      "signals": ["sinal identificado 1", "sinal identificado 2", ...],
-      "recommendation": "aprovar_automatico" | "revisao_manual" | "negar_recomendado",
-      "reasoning": "1 a 3 frases explicando a avaliação em português, sem repetir a lista de signals literalmente."
-    }
+    "riskLevel": "baixo" | "medio" | "alto",
+    "riskScore": 0-100,
+    "signals": ["sinal identificado 1", "sinal identificado 2", ...],
+    "recommendation": "aprovar_automatico" | "revisao_manual" | "negar_recomendado",
+    "reasoning": "1 a 3 frases explicando a avaliação em português, sem repetir a lista de signals literalmente."
   }
 
   Regras de decisão sugeridas (ajustáveis pelo agente principal, isto é só orientação):
