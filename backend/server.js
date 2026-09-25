@@ -8,6 +8,22 @@ const {
   BatchSpanProcessor,
 } = require("@opentelemetry/sdk-trace-node");
 const { OTLPTraceExporter } = require("@opentelemetry/exporter-trace-otlp-http");
+const { diag, DiagLogLevel } = require("@opentelemetry/api");
+// OTel SDKs swallow exporter failures internally (forceFlush() resolves
+// regardless of whether the HTTP export actually succeeded) and only
+// surface them through this diagnostic logger - capture it so
+// sendFraudCallTelemetry's own try/catch isn't the only signal.
+const otelDiagLog = [];
+diag.setLogger(
+  {
+    error: (msg, ...args) => otelDiagLog.push({ level: "error", msg, args }),
+    warn: (msg, ...args) => otelDiagLog.push({ level: "warn", msg, args }),
+    info: () => {},
+    debug: () => {},
+    verbose: () => {},
+  },
+  DiagLogLevel.WARN,
+);
 const root = path.join(__dirname, "..", "frontend");
 const { createProgress } = require("./progress");
 const { lookupRecords } = require("./records");
@@ -282,6 +298,7 @@ function estimateTokens(text) {
 // needing direct access to Render's own logs.
 let lastFraudTelemetryStatus = null;
 async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime) {
+  otelDiagLog.length = 0;
   const otelExportUrl = process.env.OTEL_EXPORT_URL;
   if (!otelExportUrl || !process.env.OTEL_FRAUD_AGENT_ID) {
     lastFraudTelemetryStatus = {
@@ -332,7 +349,14 @@ async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime)
     });
     span.end(endTime || Date.now());
     await provider.forceFlush();
-    lastFraudTelemetryStatus = { at: new Date().toISOString(), ok: true };
+    // The exporter's own error reporting (via diag) can land a beat after
+    // forceFlush() resolves - give it a moment before snapshotting.
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    lastFraudTelemetryStatus = {
+      at: new Date().toISOString(),
+      ok: true,
+      diag: otelDiagLog.slice(),
+    };
   } catch (e) {
     console.error("sendFraudCallTelemetry failed", e.message);
     lastFraudTelemetryStatus = {
@@ -340,6 +364,7 @@ async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime)
       ok: false,
       error: e.message,
       stack: e.stack,
+      diag: otelDiagLog.slice(),
     };
   } finally {
     if (provider) await provider.shutdown().catch(() => {});
