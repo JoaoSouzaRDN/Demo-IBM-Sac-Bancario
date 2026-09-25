@@ -8,22 +8,6 @@ const {
   BatchSpanProcessor,
 } = require("@opentelemetry/sdk-trace-node");
 const { OTLPTraceExporter } = require("@opentelemetry/exporter-trace-otlp-http");
-const { diag, DiagLogLevel } = require("@opentelemetry/api");
-// OTel SDKs swallow exporter failures internally (forceFlush() resolves
-// regardless of whether the HTTP export actually succeeded) and only
-// surface them through this diagnostic logger - capture it so
-// sendFraudCallTelemetry's own try/catch isn't the only signal.
-const otelDiagLog = [];
-diag.setLogger(
-  {
-    error: (msg, ...args) => otelDiagLog.push({ level: "error", msg, args }),
-    warn: (msg, ...args) => otelDiagLog.push({ level: "warn", msg, args }),
-    info: () => {},
-    debug: () => {},
-    verbose: () => {},
-  },
-  DiagLogLevel.WARN,
-);
 const root = path.join(__dirname, "..", "frontend");
 const { createProgress } = require("./progress");
 const { lookupRecords } = require("./records");
@@ -293,22 +277,9 @@ function estimateTokens(text) {
 // usage into Orchestrate's Analyze view - unlike A2A or chat-completions
 // collaborator calls, which Orchestrate never attaches usage to. Fire-and
 // -forget: never awaited by the caller, never affects the customer reply.
-// Temporary debug capture - remove once production ingestion is confirmed
-// working; lets us see the outcome via GET /api/demo/debug-otel without
-// needing direct access to Render's own logs.
-let lastFraudTelemetryStatus = null;
 async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime) {
-  otelDiagLog.length = 0;
   const otelExportUrl = process.env.OTEL_EXPORT_URL;
-  if (!otelExportUrl || !process.env.OTEL_FRAUD_AGENT_ID) {
-    lastFraudTelemetryStatus = {
-      at: new Date().toISOString(),
-      skipped: true,
-      hasUrl: Boolean(otelExportUrl),
-      hasAgentId: Boolean(process.env.OTEL_FRAUD_AGENT_ID),
-    };
-    return;
-  }
+  if (!otelExportUrl || !process.env.OTEL_FRAUD_AGENT_ID) return;
   let provider;
   try {
     const token = await getAuthToken();
@@ -349,84 +320,8 @@ async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime)
     });
     span.end(endTime || Date.now());
     await provider.forceFlush();
-    // The exporter's own error reporting (via diag) can land a beat after
-    // forceFlush() resolves - give it a moment before snapshotting.
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    // Manual raw OTLP/HTTP JSON POST, bypassing the SDK's exporter, so we
-    // can see the real HTTP status/body instead of trusting forceFlush()'s
-    // own success/failure semantics.
-    const traceId = crypto.randomBytes(16).toString("hex");
-    const spanId = crypto.randomBytes(8).toString("hex");
-    const nowNs = (ms) => `${ms}000000`;
-    const rawPayload = {
-      resourceSpans: [
-        {
-          resource: {
-            attributes: [
-              { key: "service.name", value: { stringValue: "rdn-bank-analise-fraude-reembolso" } },
-              { key: "tenant.id", value: { stringValue: process.env.WO_TENANT_ID } },
-              { key: "deployment.environment", value: { stringValue: "live" } },
-            ],
-          },
-          scopeSpans: [
-            {
-              scope: { name: "rdn-bank-fraud-adapter-raw" },
-              spans: [
-                {
-                  traceId,
-                  spanId,
-                  name: "analise_fraude_reembolso",
-                  kind: 1,
-                  startTimeUnixNano: nowNs(startTime || Date.now()),
-                  endTimeUnixNano: nowNs(endTime || Date.now()),
-                  attributes: [
-                    { key: "agent.id", value: { stringValue: process.env.OTEL_FRAUD_AGENT_ID } },
-                    { key: "langfuse.session.id", value: { stringValue: crypto.randomUUID() } },
-                    { key: "langfuse.user.id", value: { stringValue: `usr_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}` } },
-                    { key: "langfuse.observation.type", value: { stringValue: "generation" } },
-                    {
-                      key: "langfuse.observation.usage_details",
-                      value: {
-                        stringValue: JSON.stringify({
-                          input: inputTokens,
-                          output: outputTokens,
-                          total: inputTokens + outputTokens,
-                        }),
-                      },
-                    },
-                    { key: "gen_ai.usage.input_tokens", value: { intValue: String(inputTokens) } },
-                    { key: "gen_ai.usage.output_tokens", value: { intValue: String(outputTokens) } },
-                    { key: "input", value: { stringValue: inputText } },
-                    { key: "output", value: { stringValue: outputText } },
-                  ],
-                },
-              ],
-            },
-          ],
-        },
-      ],
-    };
-    const rawResponse = await fetch(otelExportUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(rawPayload),
-    });
-    const rawResponseText = await rawResponse.text().catch(() => "");
-    lastFraudTelemetryStatus = {
-      at: new Date().toISOString(),
-      ok: true,
-      diag: otelDiagLog.slice(),
-      rawPost: { traceId, status: rawResponse.status, body: rawResponseText.slice(0, 500) },
-    };
   } catch (e) {
     console.error("sendFraudCallTelemetry failed", e.message);
-    lastFraudTelemetryStatus = {
-      at: new Date().toISOString(),
-      ok: false,
-      error: e.message,
-      stack: e.stack,
-      diag: otelDiagLog.slice(),
-    };
   } finally {
     if (provider) await provider.shutdown().catch(() => {});
   }
@@ -1120,11 +1015,6 @@ http
           res.end(JSON.stringify({ error: { message: e.message } }));
         }
       });
-      return;
-    }
-    if (req.method === "GET" && req.url === "/api/demo/debug-otel") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(lastFraudTelemetryStatus));
       return;
     }
     if (req.method === "GET" && req.url.startsWith("/api/demo/records?")) {
