@@ -277,9 +277,21 @@ function estimateTokens(text) {
 // usage into Orchestrate's Analyze view - unlike A2A or chat-completions
 // collaborator calls, which Orchestrate never attaches usage to. Fire-and
 // -forget: never awaited by the caller, never affects the customer reply.
+// Temporary debug capture - remove once production ingestion is confirmed
+// working; lets us see the outcome via GET /api/demo/debug-otel without
+// needing direct access to Render's own logs.
+let lastFraudTelemetryStatus = null;
 async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime) {
   const otelExportUrl = process.env.OTEL_EXPORT_URL;
-  if (!otelExportUrl || !process.env.OTEL_FRAUD_AGENT_ID) return;
+  if (!otelExportUrl || !process.env.OTEL_FRAUD_AGENT_ID) {
+    lastFraudTelemetryStatus = {
+      at: new Date().toISOString(),
+      skipped: true,
+      hasUrl: Boolean(otelExportUrl),
+      hasAgentId: Boolean(process.env.OTEL_FRAUD_AGENT_ID),
+    };
+    return;
+  }
   let provider;
   try {
     const token = await getAuthToken();
@@ -320,8 +332,15 @@ async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime)
     });
     span.end(endTime || Date.now());
     await provider.forceFlush();
+    lastFraudTelemetryStatus = { at: new Date().toISOString(), ok: true };
   } catch (e) {
     console.error("sendFraudCallTelemetry failed", e.message);
+    lastFraudTelemetryStatus = {
+      at: new Date().toISOString(),
+      ok: false,
+      error: e.message,
+      stack: e.stack,
+    };
   } finally {
     if (provider) await provider.shutdown().catch(() => {});
   }
@@ -1015,6 +1034,11 @@ http
           res.end(JSON.stringify({ error: { message: e.message } }));
         }
       });
+      return;
+    }
+    if (req.method === "GET" && req.url === "/api/demo/debug-otel") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify(lastFraudTelemetryStatus));
       return;
     }
     if (req.method === "GET" && req.url.startsWith("/api/demo/records?")) {
