@@ -2,6 +2,12 @@ const http = require("http"),
   fs = require("fs"),
   path = require("path"),
   crypto = require("crypto");
+const { resourceFromAttributes } = require("@opentelemetry/resources");
+const {
+  NodeTracerProvider,
+  BatchSpanProcessor,
+} = require("@opentelemetry/sdk-trace-node");
+const { OTLPTraceExporter } = require("@opentelemetry/exporter-trace-otlp-http");
 const root = path.join(__dirname, "..", "frontend");
 const { createProgress } = require("./progress");
 const { lookupRecords } = require("./records");
@@ -257,6 +263,69 @@ async function foundryA2ASendAndWait(text, headers) {
   }
   return result;
 }
+// Rough token-count estimate (chars/4), used because Foundry's A2A response
+// never carries real usage data - there is nothing to relay, so this is a
+// local approximation reported to the OTLP ingestion endpoint below.
+function estimateTokens(text) {
+  return Math.max(1, Math.ceil((text || "").length / 4));
+}
+// Reports the real analise_fraude_reembolso call as an OTLP span to
+// watsonx Orchestrate's external-agent trace ingestion endpoint
+// (OTEL_EXPORT_URL - see developer.watson-orchestrate.ibm.com/traces/otel-export).
+// This is the one channel confirmed (via a live 400 "Missing tenant.id on
+// spans" response) to actually exist for getting an external agent's own
+// usage into Orchestrate's Analyze view - unlike A2A or chat-completions
+// collaborator calls, which Orchestrate never attaches usage to. Fire-and
+// -forget: never awaited by the caller, never affects the customer reply.
+async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime) {
+  const otelExportUrl = process.env.OTEL_EXPORT_URL;
+  if (!otelExportUrl || !process.env.OTEL_FRAUD_AGENT_ID) return;
+  let provider;
+  try {
+    const token = await getAuthToken();
+    const resource = resourceFromAttributes({
+      "service.name": "rdn-bank-analise-fraude-reembolso",
+      "tenant.id": process.env.WO_TENANT_ID,
+      "deployment.environment": "live",
+    });
+    const exporter = new OTLPTraceExporter({
+      url: otelExportUrl,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    provider = new NodeTracerProvider({
+      resource,
+      spanProcessors: [new BatchSpanProcessor(exporter)],
+    });
+    const tracer = provider.getTracer("rdn-bank-fraud-adapter");
+    const inputTokens = estimateTokens(inputText);
+    const outputTokens = estimateTokens(outputText);
+    const span = tracer.startSpan("analise_fraude_reembolso", {
+      startTime: startTime || Date.now(),
+      attributes: {
+        "agent.id": process.env.OTEL_FRAUD_AGENT_ID,
+        "langfuse.session.id": crypto.randomUUID(),
+        "langfuse.user.id": `usr_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}`,
+        "langfuse.observation.type": "generation",
+        "langfuse.observation.usage_details": JSON.stringify({
+          input: inputTokens,
+          output: outputTokens,
+          total: inputTokens + outputTokens,
+        }),
+        "gen_ai.usage.input_tokens": inputTokens,
+        "gen_ai.usage.output_tokens": outputTokens,
+        "gen_ai.usage.total_tokens": inputTokens + outputTokens,
+        input: inputText,
+        output: outputText,
+      },
+    });
+    span.end(endTime || Date.now());
+    await provider.forceFlush();
+  } catch (e) {
+    console.error("sendFraudCallTelemetry failed", e.message);
+  } finally {
+    if (provider) await provider.shutdown().catch(() => {});
+  }
+}
 // Calls analise_fraude_reembolso directly (bypassing whether sac_resposta's
 // own tool-calling decided to do so) so the real assessment always happens
 // once a contestation is actually confirmed - see withCompraConfirmationOverride.
@@ -271,10 +340,12 @@ async function analyzeFraudDirectly(purchase, motivo) {
     `id ${purchase.id}, estabelecimento ${purchase.merchant}, valor R$ ${purchase.amount}, ` +
     `data ${purchase.date}. Motivo informado pelo cliente: "${motivo}". ` +
     `Responda no formato estruturado padrão.`;
+  const callStart = Date.now();
   try {
     const result = await foundryA2ASendAndWait(prompt, headers);
     const rawText = result?.result?.artifacts?.[0]?.parts?.[0]?.text;
     if (!rawText) return null;
+    sendFraudCallTelemetry(prompt, rawText, callStart, Date.now());
     let parsed = JSON.parse(rawText.replace(/^```(?:json)?\s*|\s*```$/g, ""));
     if (
       parsed &&
@@ -859,13 +930,6 @@ async function handleFoundryFraudeA2A(body, res) {
   if (result && typeof result === "object") result.id = requestId;
   res.writeHead(200, { "Content-Type": "application/json" });
   res.end(JSON.stringify(result));
-}
-// Rough token-count estimate (chars/4) used only because Foundry's A2A
-// response never carries real usage data - there is no token accounting
-// anywhere in that response to relay. This is a local approximation, not a
-// real count from either model.
-function estimateTokens(text) {
-  return Math.max(1, Math.ceil((text || "").length / 4));
 }
 // OpenAI chat-completions-shaped adapter for the same Foundry call, used to
 // test whether registering this collaborator under provider "external_chat"
