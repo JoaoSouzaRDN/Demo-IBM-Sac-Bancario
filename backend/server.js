@@ -352,10 +352,71 @@ async function sendFraudCallTelemetry(inputText, outputText, startTime, endTime)
     // The exporter's own error reporting (via diag) can land a beat after
     // forceFlush() resolves - give it a moment before snapshotting.
     await new Promise((resolve) => setTimeout(resolve, 800));
+    // Manual raw OTLP/HTTP JSON POST, bypassing the SDK's exporter, so we
+    // can see the real HTTP status/body instead of trusting forceFlush()'s
+    // own success/failure semantics.
+    const traceId = crypto.randomBytes(16).toString("hex");
+    const spanId = crypto.randomBytes(8).toString("hex");
+    const nowNs = (ms) => `${ms}000000`;
+    const rawPayload = {
+      resourceSpans: [
+        {
+          resource: {
+            attributes: [
+              { key: "service.name", value: { stringValue: "rdn-bank-analise-fraude-reembolso" } },
+              { key: "tenant.id", value: { stringValue: process.env.WO_TENANT_ID } },
+              { key: "deployment.environment", value: { stringValue: "live" } },
+            ],
+          },
+          scopeSpans: [
+            {
+              scope: { name: "rdn-bank-fraud-adapter-raw" },
+              spans: [
+                {
+                  traceId,
+                  spanId,
+                  name: "analise_fraude_reembolso",
+                  kind: 1,
+                  startTimeUnixNano: nowNs(startTime || Date.now()),
+                  endTimeUnixNano: nowNs(endTime || Date.now()),
+                  attributes: [
+                    { key: "agent.id", value: { stringValue: process.env.OTEL_FRAUD_AGENT_ID } },
+                    { key: "langfuse.session.id", value: { stringValue: crypto.randomUUID() } },
+                    { key: "langfuse.user.id", value: { stringValue: `usr_${crypto.randomUUID().replace(/-/g, "").slice(0, 12)}` } },
+                    { key: "langfuse.observation.type", value: { stringValue: "generation" } },
+                    {
+                      key: "langfuse.observation.usage_details",
+                      value: {
+                        stringValue: JSON.stringify({
+                          input: inputTokens,
+                          output: outputTokens,
+                          total: inputTokens + outputTokens,
+                        }),
+                      },
+                    },
+                    { key: "gen_ai.usage.input_tokens", value: { intValue: String(inputTokens) } },
+                    { key: "gen_ai.usage.output_tokens", value: { intValue: String(outputTokens) } },
+                    { key: "input", value: { stringValue: inputText } },
+                    { key: "output", value: { stringValue: outputText } },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    const rawResponse = await fetch(otelExportUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(rawPayload),
+    });
+    const rawResponseText = await rawResponse.text().catch(() => "");
     lastFraudTelemetryStatus = {
       at: new Date().toISOString(),
       ok: true,
       diag: otelDiagLog.slice(),
+      rawPost: { traceId, status: rawResponse.status, body: rawResponseText.slice(0, 500) },
     };
   } catch (e) {
     console.error("sendFraudCallTelemetry failed", e.message);
