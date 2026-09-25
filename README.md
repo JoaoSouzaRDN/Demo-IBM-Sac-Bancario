@@ -17,11 +17,20 @@ Demo de atendimento bancário via chat, combinando um frontend React, um backend
 - **Agentes nativos do Orchestrate** (`agents/sac-resposta/`, `agents/sac-consulta/`): definidos em YAML, importados via `orchestrate agents import -f <arquivo>`.
   - `sac_resposta`: agente principal, conversa com o cliente.
   - `sac_consulta`: colaborador interno, consulta os dados mockados (Pix, cartão, compra, parcela, cadastro).
-- **Agente externo** (`agents/analise-fraude-reembolso/`): `analise_fraude_reembolso`, um *Prompt Agent* hospedado no **Azure AI Foundry**, registrado no Orchestrate como colaborador externo (`kind: external`, `provider: external_chat/A2A/0.3.0`). Recebe os fatos de uma contestação de compra e devolve um parecer estruturado de risco de fraude (nunca aprova/nega sozinho — é só um insumo pra decisão do agente principal).
+- **Agente externo** (`agents/analise-fraude-reembolso/`): `analise_fraude_reembolso`, um *Prompt Agent* hospedado no **Azure AI Foundry**, registrado no Orchestrate como colaborador externo (`kind: external`). Recebe os fatos de uma contestação de compra e devolve um parecer estruturado de risco de fraude (nunca aprova/nega sozinho — é só um insumo pra decisão do agente principal).
+
+### Duas camadas de protocolo — não confundir
+
+Há dois protocolos diferentes envolvidos, em duas pontas distintas, e vale separar bem os dois:
+
+1. **Backend → Foundry**: o backend sempre fala **A2A** com o Foundry de verdade (`foundryA2ACall`/`foundryA2ASendAndWait` em `backend/server.js`), porque é assim que o `Prompt Agent` do Foundry está exposto (`.../endpoint/protocols/a2a`). Isso nunca muda, independente de como o colaborador está registrado no Orchestrate.
+2. **Orchestrate → backend**: como o `sac_resposta` chama o colaborador quando decide fazer isso nativamente. **Na configuração atual (a que está rodando/salva), o provider registrado é `external_chat` puro (chat completions), apontando pra `POST /api/foundry-fraude/chat`** — não é mais `external_chat/A2A/0.3.0`. O endpoint `POST /api/foundry-fraude/a2a` continua existindo no backend (foi o usado antes e serviu de base pro adaptador A2A abaixo), mas não é o que o Orchestrate chama hoje.
+
+Os dois endpoints do backend reaproveitam as mesmas funções internas de comunicação com o Foundry (`foundryA2ASendAndWait`) — a diferença entre eles é só o formato da requisição/resposta que cada um fala com o Orchestrate (JSON-RPC estilo A2A vs. chat completions estilo OpenAI).
 
 ### Por que existe um adaptador A2A no backend
 
-O cliente A2A do watsonx Orchestrate e o endpoint A2A do Azure AI Foundry não são 100% compatíveis entre si: o Orchestrate manda as partes da mensagem com o discriminador antigo `type` (pré-0.3) e sem `messageId`; o Foundry exige o discriminador `kind` da versão 0.3 do A2A com `messageId` obrigatório, e responde `message/send` de forma assíncrona (`submitted` → `completed`) sem fazer polling. `backend/server.js` expõe `POST /api/foundry-fraude/a2a`, que normaliza o payload, encaminha pro Foundry com `FOUNDRY_FRAUDE_API_KEY` e faz o polling em `tasks/get` até completar — pro Orchestrate, a chamada parece síncrona.
+O cliente A2A do watsonx Orchestrate e o endpoint A2A do Azure AI Foundry não são 100% compatíveis entre si: o Orchestrate manda as partes da mensagem com o discriminador antigo `type` (pré-0.3) e sem `messageId`; o Foundry exige o discriminador `kind` da versão 0.3 do A2A com `messageId` obrigatório, e responde `message/send` de forma assíncrona (`submitted` → `completed`) sem fazer polling. `backend/server.js` expõe `POST /api/foundry-fraude/a2a`, que normaliza o payload, encaminha pro Foundry com `FOUNDRY_FRAUDE_API_KEY` e faz o polling em `tasks/get` até completar — pro Orchestrate, a chamada parece síncrona. As mesmas funções (`foundryA2ACall`, `normalizeA2AMessage`, `foundryA2ASendAndWait`) são reaproveitadas por tudo mais que fala com o Foundry: o adaptador chat completions (`handleFoundryFraudeChat`) e a chamada direta do override determinístico (`analyzeFraudDirectly`, ver abaixo).
 
 ### Camada de confiabilidade determinística
 
